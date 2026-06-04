@@ -34,6 +34,21 @@ const STATUS_MAP = {
     tagType: 'danger',
     accent: 'red',
   },
+  approved: {
+    label: '已通过',
+    tagType: 'success',
+    accent: 'green',
+  },
+  revision: {
+    label: '需修改',
+    tagType: 'danger',
+    accent: 'red',
+  },
+  reject: {
+    label: '已退回',
+    tagType: 'danger',
+    accent: 'red',
+  },
 }
 
 export function resolveStatusMeta(status) {

@@ -670,3 +670,129 @@ export function removeProjectMember(projectId, memberId) {
 
   return delayResponse(null, '成员移除成功', 200)
 }
+
+// ===== 新增：文件内容查看 =====
+
+// getFileContent 现在通过 downloadFileBlob 工作，此处保留以兼容旧调用
+export function getFileContent(fileId) {
+  const fileAsset = state.fileAssets.find((f) => f.fileId === fileId)
+  if (!fileAsset) {
+    return delayResponse(null, '文件不存在', 100)
+  }
+
+  return delayResponse(
+    {
+      fileId: fileAsset.fileId,
+      fileName: fileAsset.fileName,
+      fileExt: fileAsset.fileExt || 'docx',
+      fileSize: fileAsset.fileSize || 1024,
+      downloadUrl: `#mock-download/${fileId}`,
+    },
+    '文件准备就绪',
+    100,
+  )
+}
+
+// ===== 新增：我的项目列表 =====
+
+export function getMyProjects() {
+  // Simulate: return projects where user is a member
+  const allProjects = state.projects.map((p) => {
+    const memberRecords = state.projectMembers.filter((pm) => pm.projectId === p.projectId)
+    const leaderMember = memberRecords.find((pm) => pm.memberRole === 'leader')
+    const notice = getNoticeById(p.noticeId)
+    const materials = buildMaterialViews(p.projectId)
+    const submitted = materials.filter((m) => m.submitStatus === 'submitted').length
+    const reviewed = materials.filter((m) => m.reviewStatus).length
+
+    return {
+      projectId: p.projectId,
+      projectName: p.projectName,
+      teamName: p.teamName,
+      status: p.status,
+      completionRate: p.completionRate,
+      deadline: p.deadline,
+      leaderName: getUserById(leaderMember?.userId)?.realName || '',
+      noticeTitle: notice?.title || '',
+      memberNames: memberRecords.map(
+        (pm) => `${getUserById(pm.userId)?.realName || ''}（${{ leader: '负责人', advisor: '指导教师', member: '成员' }[pm.memberRole]}）`,
+      ),
+      submittedCount: submitted,
+      totalCount: materials.length,
+      reviewedCount: reviewed,
+    }
+  })
+
+  return delayResponse(allProjects, '项目列表获取成功', 200)
+}
+
+// ===== 新增：教师审核材料 =====
+
+export function reviewMaterial(payload) {
+  const material = state.materials.find((m) => m.materialId === payload.materialId)
+  if (!material) {
+    return delayResponse(null, '材料记录不存在', 100)
+  }
+
+  material.reviewStatus = payload.reviewStatus
+  material.reviewComment = payload.reviewComment || ''
+  material.reviewedBy = payload.reviewerId
+  material.reviewedByName = getUserById(payload.reviewerId)?.realName || ''
+  material.reviewedAt = new Date().toISOString()
+
+  // Add to review records
+  state.reviewRecords.push({
+    reviewId: state.counters.reviewId++,
+    projectId: payload.projectId,
+    reviewType: 'teacher',
+    reviewResult: payload.reviewStatus,
+    reviewComment: `材料审核结果：${payload.reviewStatus === 'approved' ? '通过' : '需修改'}。${payload.reviewComment || ''}`,
+    reviewerName: material.reviewedByName,
+    createdAt: material.reviewedAt,
+  })
+
+  return delayResponse(
+    {
+      materialId: material.materialId,
+      reviewStatus: material.reviewStatus,
+      reviewComment: material.reviewComment,
+      reviewedAt: material.reviewedAt,
+    },
+    payload.reviewStatus === 'approved' ? '材料审核通过' : '已提交修改意见',
+    200,
+  )
+}
+
+// ===== 新增：项目审核状态 =====
+
+export function getProjectReviewStatus(projectId) {
+  const materials = buildMaterialViews(projectId)
+  // Inject mock review status
+  materials.forEach((m) => {
+    const stored = state.materials.find(
+      (sm) => sm.projectId === projectId && sm.requirementId === m.requirementId,
+    )
+    if (stored) {
+      m.reviewStatus = stored.reviewStatus || null
+      m.reviewComment = stored.reviewComment || null
+      m.reviewedByName = stored.reviewedByName || null
+      m.reviewedAt = stored.reviewedAt || null
+    }
+  })
+
+  return delayResponse(materials, '审核状态获取成功', 200)
+}
+
+// ===== 新增：重置审核状态 =====
+
+export function resetMaterialReview(materialId) {
+  const material = state.materials.find((m) => m.materialId === materialId)
+  if (material) {
+    material.reviewStatus = null
+    material.reviewComment = null
+    material.reviewedBy = null
+    material.reviewedByName = null
+    material.reviewedAt = null
+  }
+  return delayResponse(null, '审核状态已重置', 200)
+}

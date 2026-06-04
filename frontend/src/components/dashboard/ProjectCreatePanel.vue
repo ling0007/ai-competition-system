@@ -115,6 +115,11 @@ watch(
         form.leaderId = leaderOptions.value[0]?.value ?? userOptions[0].value
       }
     }
+
+    // Auto-set advisor to current user if they are a teacher
+    if (!form.advisorId && props.currentUser?.userId && props.currentUser.role === 'teacher') {
+      form.advisorId = props.currentUser.userId
+    }
   },
   { immediate: true },
 )

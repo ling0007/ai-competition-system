@@ -28,9 +28,6 @@ The frontend is at `E:\aicompetition\` (parent of this backend repo).
 ```bash
 cd E:\aicompetition
 
-# Install dependencies
-npm install
-
 # Dev server (defaults to port 5173, proxies /api but uses direct localhost:8080 via VITE_API_BASE_URL)
 npm run dev
 

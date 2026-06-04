@@ -21,6 +21,10 @@ public class ProjectMaterial {
     private Integer versionNo;
     private String remark;
     private LocalDateTime submittedAt;
+    private String reviewStatus;
+    private String reviewComment;
+    private Long reviewedBy;
+    private LocalDateTime reviewedAt;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     @TableField("is_deleted")

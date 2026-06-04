@@ -6,13 +6,17 @@ import {
   FileText,
   Files,
   LayoutDashboard,
+  School,
 } from 'lucide-vue-next'
 import AppShell from '@/components/layout/AppShell.vue'
 import LoginPage from '@/components/auth/LoginPage.vue'
 import RegisterPage from '@/components/auth/RegisterPage.vue'
 import MaterialCheckPanel from '@/components/dashboard/MaterialCheckPanel.vue'
+import MaterialReviewPanel from '@/components/dashboard/MaterialReviewPanel.vue'
 import NoticeUploadPanel from '@/components/dashboard/NoticeUploadPanel.vue'
 import ProjectCreatePanel from '@/components/dashboard/ProjectCreatePanel.vue'
+import TeacherDashboard from '@/components/dashboard/TeacherDashboard.vue'
+import FileContentViewer from '@/components/shared/FileContentViewer.vue'
 import StatusTag from '@/components/shared/StatusTag.vue'
 import {
   addProjectMember,
@@ -20,6 +24,7 @@ import {
   getDashboardBootstrap,
   getProjectDetail,
   getProjectProgress,
+  getMyProjects,
   parseNotice,
   removeProjectMember,
   runMaterialCheck,
@@ -47,6 +52,15 @@ const materialSection = ref(null)
 
 let sectionObserver = null
 
+// Teacher-specific state
+const teacherProjects = ref([])
+const teacherSelectedProject = ref(null)
+const teacherLoadingProjects = ref(false)
+const fileViewerVisible = ref(false)
+const fileViewerFileId = ref(null)
+const fileViewerFileName = ref('')
+const isTeacher = computed(() => currentUser.value?.role === 'teacher')
+
 const loading = reactive({
   bootstrap: false,
   uploadNotice: false,
@@ -58,12 +72,23 @@ const loading = reactive({
   removeMemberId: null,
 })
 
-const menuItems = [
+const studentMenuItems = [
   { key: 'overview', label: '总览看板', icon: LayoutDashboard },
   { key: 'notice', label: '通知解析', icon: FileText },
   { key: 'project', label: '项目申报', icon: Files },
   { key: 'material', label: '材料检查', icon: ClipboardCheck },
 ]
+
+const teacherMenuItems = [
+  { key: 'overview', label: '我的项目', icon: School },
+  { key: 'notice', label: '通知解析', icon: FileText },
+  { key: 'project', label: '项目申报', icon: Files },
+  { key: 'material', label: '材料审核', icon: ClipboardCheck },
+]
+
+const menuItems = computed(() =>
+  isTeacher.value ? teacherMenuItems : studentMenuItems,
+)
 
 const submittedMaterials = computed(
   () => currentProjectDetail.value?.materials?.filter((item) => item.submitStatus === 'submitted') ?? [],
@@ -342,6 +367,35 @@ async function handleRemoveMember(projectId, memberId) {
   }
 }
 
+// ===== Teacher-specific handlers =====
+
+async function handleTeacherSelectProject(project) {
+  teacherSelectedProject.value = null
+  try {
+    const response = await getProjectDetail(project.projectId)
+    teacherSelectedProject.value = response.data
+    currentProjectDetail.value = response.data
+    scrollToSection('material')
+  } catch (error) {
+    ElMessage.error(resolveErrorMessage(error, '获取项目详情失败'))
+  }
+}
+
+function handleTeacherProjectUpdated(projectData) {
+  teacherSelectedProject.value = projectData
+  currentProjectDetail.value = projectData
+}
+
+function handleTeacherCreateProject() {
+  scrollToSection('project')
+}
+
+function openFileViewer(fileId, fileName) {
+  fileViewerFileId.value = fileId
+  fileViewerFileName.value = fileName || ''
+  fileViewerVisible.value = true
+}
+
 function resolveErrorMessage(error, fallback) {
   return (
     error?.response?.data?.message
@@ -353,7 +407,9 @@ function resolveErrorMessage(error, fallback) {
 function decodeTokenPayload(token) {
   try {
     const payload = token.split('.')[1] || token
-    return JSON.parse(atob(payload))
+    const binary = atob(payload)
+    const bytes = Uint8Array.from(binary, (c) => c.charCodeAt(0))
+    return JSON.parse(new TextDecoder().decode(bytes))
   } catch {
     return null
   }
@@ -394,7 +450,7 @@ onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (token) {
     const payload = decodeTokenPayload(token)
-    if (payload && payload.exp > Date.now()) {
+    if (payload && payload.exp * 1000 > Date.now()) {
       currentUser.value = {
         userId: Number(payload.sub) || payload.userId,
         username: payload.username,
@@ -437,13 +493,25 @@ onBeforeUnmount(() => {
   >
     <template #hero-actions>
       <span class="app-shell__user-info">{{ currentUser?.realName || currentUser?.username }}</span>
-      <el-button type="primary" @click="scrollToSection('project')">新建项目</el-button>
+      <el-button v-if="isTeacher" type="primary" @click="scrollToSection('overview')">我的项目</el-button>
+      <el-button v-else type="primary" @click="scrollToSection('project')">新建项目</el-button>
       <el-button class="app-button--secondary" @click="scrollToSection('notice')">上传通知</el-button>
-      <el-button class="app-button--secondary" @click="scrollToSection('material')">查看材料清单</el-button>
+      <el-button v-if="isTeacher" class="app-button--secondary" @click="scrollToSection('material')">材料审核</el-button>
+      <el-button v-else class="app-button--secondary" @click="scrollToSection('material')">查看材料清单</el-button>
       <el-button class="app-button--outline" @click="handleLogout">退出登录</el-button>
     </template>
 
-    <section ref="overviewSection" class="dashboard-anchor dashboard-anchor--overview">
+    <!-- 教师 overview: 项目列表 -->
+    <section v-if="isTeacher" ref="overviewSection" class="dashboard-anchor dashboard-anchor--overview">
+      <TeacherDashboard
+        :current-user="currentUser"
+        @select-project="handleTeacherSelectProject"
+        @create-project="handleTeacherCreateProject"
+      />
+    </section>
+
+    <!-- 学生 overview: 项目总览卡片 -->
+    <section v-else ref="overviewSection" class="dashboard-anchor dashboard-anchor--overview">
       <div class="dashboard-actions">
         <el-button type="primary" @click="scrollToSection('project')">新建项目</el-button>
         <el-button class="app-button--secondary" @click="scrollToSection('notice')">上传通知</el-button>
@@ -550,7 +618,20 @@ onBeforeUnmount(() => {
         />
       </section>
 
-      <section ref="materialSection" class="dashboard-anchor dashboard-grid__material">
+      <!-- 教师：材料审核面板 -->
+      <section v-if="isTeacher" ref="materialSection" class="dashboard-anchor dashboard-grid__material">
+        <template v-if="teacherSelectedProject">
+          <MaterialReviewPanel
+            :project="teacherSelectedProject"
+            :current-user="currentUser"
+            @project-updated="handleTeacherProjectUpdated"
+          />
+        </template>
+        <el-empty v-else description="请从上方「我的项目」中选择一个项目进行材料审核" />
+      </section>
+
+      <!-- 学生：材料检查面板 -->
+      <section v-else ref="materialSection" class="dashboard-anchor dashboard-grid__material">
         <MaterialCheckPanel
           :project="currentProjectDetail"
           :ai-result="lastCheckResult"
@@ -558,10 +639,18 @@ onBeforeUnmount(() => {
           :checking="loading.runCheck"
           @upload-material="handleMaterialUpload"
           @run-check="handleRunMaterialCheck"
+          @view-file="openFileViewer"
         />
       </section>
     </div>
   </AppShell>
+
+  <FileContentViewer
+    :file-id="fileViewerFileId"
+    :file-name="fileViewerFileName"
+    :visible="fileViewerVisible"
+    @close="fileViewerVisible = false"
+  />
 </template>
 
 <style scoped lang="scss">

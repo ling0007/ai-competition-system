@@ -26,7 +26,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['upload-material', 'run-check'])
+const emit = defineEmits(['upload-material', 'run-check', 'view-file'])
 
 const remarks = reactive({})
 
@@ -75,11 +75,16 @@ function resolveActionText(row) {
 }
 
 function previewFile(row) {
-  if (!row.fileName) {
+  if (!row.fileId || !row.fileName) {
+    ElMessage.warning('该材料尚未上传文件')
     return
   }
+  emit('view-file', row.fileId, row.fileName)
+}
 
-  ElMessage.info(`当前文件：${row.fileName}`)
+function getReviewStatusMeta(status) {
+  if (!status) return { label: '未审核', tagType: 'info' }
+  return resolveStatusMeta(status)
 }
 </script>
 
@@ -118,6 +123,15 @@ function previewFile(row) {
             />
           </template>
         </el-table-column>
+        <el-table-column label="审核状态" width="110">
+          <template #default="{ row }">
+            <StatusTag
+              :status="row.reviewStatus"
+              :label="getReviewStatusMeta(row.reviewStatus).label"
+              :tone="getReviewStatusMeta(row.reviewStatus).tagType"
+            />
+          </template>
+        </el-table-column>
         <el-table-column label="版本 / 文件" min-width="180">
           <template #default="{ row }">
             <div class="material-panel__file">
@@ -133,6 +147,16 @@ function previewFile(row) {
               size="small"
               placeholder="补充上传说明"
             />
+          </template>
+        </el-table-column>
+        <el-table-column label="审核意见" min-width="180" show-overflow-tooltip>
+          <template #default="{ row }">
+            <span v-if="row.reviewComment" style="color: var(--app-text-secondary); font-size: 13px;">
+              {{ row.reviewComment }}
+            </span>
+            <span v-else style="color: var(--app-text-muted); font-size: 12px; font-style: italic;">
+              暂无审核意见
+            </span>
           </template>
         </el-table-column>
         <el-table-column label="提交时间" width="170">

@@ -16,7 +16,11 @@
             fa.file_name,
             pm.version_no,
             pm.remark,
-            pm.submitted_at
+            pm.submitted_at,
+            pm.review_status,
+            pm.review_comment,
+            reviewer.real_name AS reviewed_by_name,
+            pm.reviewed_at
         FROM competition_project cp
         JOIN material_requirement mr
           ON mr.notice_id = cp.notice_id
@@ -40,6 +44,9 @@
         LEFT JOIN file_asset fa
           ON fa.file_id = pm.file_id
          AND fa.is_deleted = 0
+        LEFT JOIN sys_user reviewer
+          ON reviewer.user_id = pm.reviewed_by
+         AND reviewer.is_deleted = 0
         WHERE cp.project_id = #{projectId}
           AND cp.is_deleted = 0
         ORDER BY mr.sort_no ASC, mr.requirement_id ASC

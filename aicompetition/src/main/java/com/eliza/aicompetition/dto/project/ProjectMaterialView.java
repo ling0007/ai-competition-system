@@ -17,4 +17,8 @@ public class ProjectMaterialView {
     private Integer versionNo;
     private String remark;
     private LocalDateTime submittedAt;
+    private String reviewStatus;
+    private String reviewComment;
+    private String reviewedByName;
+    private LocalDateTime reviewedAt;
 }

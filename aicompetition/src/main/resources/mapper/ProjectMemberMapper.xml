@@ -32,4 +32,29 @@
         ORDER BY pm.project_id DESC
     </select>
 
+    <select id="findProjectListByUserId" resultType="com.eliza.aicompetition.dto.project.ProjectListView">
+        SELECT
+            cp.project_id,
+            cp.project_name,
+            cp.team_name,
+            cp.status,
+            cp.completion_rate,
+            cp.deadline,
+            leader.real_name AS leader_name,
+            cn.title AS notice_title
+        FROM project_member pm
+        JOIN competition_project cp
+          ON cp.project_id = pm.project_id
+         AND cp.is_deleted = 0
+        JOIN sys_user leader
+          ON leader.user_id = cp.leader_id
+         AND leader.is_deleted = 0
+        JOIN competition_notice cn
+          ON cn.notice_id = cp.notice_id
+         AND cn.is_deleted = 0
+        WHERE pm.user_id = #{userId}
+          AND pm.is_deleted = 0
+        ORDER BY cp.project_id DESC
+    </select>
+
 </mapper>

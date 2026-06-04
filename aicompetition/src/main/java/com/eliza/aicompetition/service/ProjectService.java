@@ -5,6 +5,7 @@ import com.eliza.aicompetition.dto.project.AddMemberRequest;
 import com.eliza.aicompetition.dto.project.CreateProjectRequest;
 import com.eliza.aicompetition.dto.project.ProjectCreateResponse;
 import com.eliza.aicompetition.dto.project.ProjectDetailResponse;
+import com.eliza.aicompetition.dto.project.ProjectListView;
 import com.eliza.aicompetition.dto.project.ProjectMaterialView;
 import com.eliza.aicompetition.dto.project.ProjectProgressResponse;
 import com.eliza.aicompetition.entity.CompetitionNotice;
@@ -214,6 +215,54 @@ public class ProjectService {
             throw new BusinessException("Project not found: projectId=" + projectId);
         }
         return project;
+    }
+
+    /**
+     * 获取当前用户参与的所有项目列表（含进度和审核汇总）。
+     * 适用于教师查看指导的项目、学生查看自己参与的项目。
+     */
+    public List<ProjectListView> getMyProjects(Long userId) {
+        List<ProjectListView> projects = projectMemberMapper.findProjectListByUserId(userId);
+        for (ProjectListView project : projects) {
+            // Fill in member names
+            List<String> memberNames = projectMemberMapper.findMemberViewsByProjectId(project.getProjectId())
+                .stream()
+                .map(m -> m.getRealName() + "（" + roleLabel(m.getMemberRole()) + "）")
+                .toList();
+            project.setMemberNames(memberNames);
+
+            // Fill in submission/review counts
+            List<ProjectMaterialView> materials = projectMaterialMapper.findLatestDetailsByProjectId(project.getProjectId());
+            int total = materials.size();
+            int submitted = (int) materials.stream()
+                .filter(m -> "submitted".equalsIgnoreCase(m.getSubmitStatus()))
+                .count();
+            int reviewed = (int) materials.stream()
+                .filter(m -> m.getReviewStatus() != null)
+                .count();
+            project.setSubmittedCount(submitted);
+            project.setTotalCount(total);
+            project.setReviewedCount(reviewed);
+        }
+        return projects;
+    }
+
+    /**
+     * 获取项目各材料的审核状态汇总。
+     */
+    public List<ProjectMaterialView> getProjectReviewStatus(Long projectId) {
+        // Ensure project exists
+        getProjectOrThrow(projectId);
+        return projectMaterialMapper.findLatestDetailsByProjectId(projectId);
+    }
+
+    private String roleLabel(String role) {
+        return switch (role) {
+            case "leader" -> "负责人";
+            case "advisor" -> "指导教师";
+            case "member" -> "成员";
+            default -> role;
+        };
     }
 
     private void initializeMembers(Long projectId, CreateProjectRequest request) {

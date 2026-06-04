@@ -16,8 +16,11 @@ import com.eliza.aicompetition.mapper.CompetitionProjectMapper;
 import com.eliza.aicompetition.mapper.FileAssetMapper;
 import com.eliza.aicompetition.mapper.ReviewRecordMapper;
 import com.eliza.aicompetition.mapper.SysUserMapper;
+import com.eliza.aicompetition.mapper.ProjectMemberMapper;
 import com.eliza.aicompetition.service.NoticeService;
 import com.eliza.aicompetition.service.ProjectService;
+import com.eliza.aicompetition.util.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -43,8 +46,10 @@ public class DashboardController {
     private final FileAssetMapper fileAssetMapper;
     private final ReviewRecordMapper reviewRecordMapper;
     private final SysUserMapper sysUserMapper;
+    private final ProjectMemberMapper projectMemberMapper;
     private final NoticeService noticeService;
     private final ProjectService projectService;
+    private final JwtUtil jwtUtil;
 
     public DashboardController(
         CompetitionNoticeMapper competitionNoticeMapper,
@@ -52,21 +57,35 @@ public class DashboardController {
         FileAssetMapper fileAssetMapper,
         ReviewRecordMapper reviewRecordMapper,
         SysUserMapper sysUserMapper,
+        ProjectMemberMapper projectMemberMapper,
         NoticeService noticeService,
-        ProjectService projectService
+        ProjectService projectService,
+        JwtUtil jwtUtil
     ) {
         this.competitionNoticeMapper = competitionNoticeMapper;
         this.competitionProjectMapper = competitionProjectMapper;
         this.fileAssetMapper = fileAssetMapper;
         this.reviewRecordMapper = reviewRecordMapper;
         this.sysUserMapper = sysUserMapper;
+        this.projectMemberMapper = projectMemberMapper;
         this.noticeService = noticeService;
         this.projectService = projectService;
+        this.jwtUtil = jwtUtil;
     }
 
     @GetMapping("/bootstrap")
-    public ApiResponse<Map<String, Object>> bootstrap() {
+    public ApiResponse<Map<String, Object>> bootstrap(HttpServletRequest request) {
         log.info("Dashboard bootstrap requested");
+
+        // Extract userId from JWT Authorization header
+        Long userId = null;
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            if (jwtUtil.isTokenValid(token)) {
+                userId = jwtUtil.getUserId(token);
+            }
+        }
 
         // 1. User options
         List<Map<String, Object>> userOptions = sysUserMapper.selectList(null).stream()
@@ -129,28 +148,31 @@ public class DashboardController {
                 .toList();
         }
 
-        // 3. Latest project
-        LambdaQueryWrapper<CompetitionProject> projectQuery = new LambdaQueryWrapper<CompetitionProject>()
-            .orderByDesc(CompetitionProject::getProjectId)
-            .last("limit 1");
-        CompetitionProject latestProject = competitionProjectMapper.selectOne(projectQuery);
+        // 3. User's latest project (via project_member table), or null if user has no project
+        CompetitionProject userProject = null;
+        if (userId != null) {
+            List<Long> userProjectIds = projectMemberMapper.findProjectIdsByUserId(userId);
+            if (!userProjectIds.isEmpty()) {
+                userProject = competitionProjectMapper.selectById(userProjectIds.get(0));
+            }
+        }
 
         ProjectDetailResponse projectDetail = null;
         ProjectProgressResponse progress = null;
         Map<String, Object> aiCheck = null;
 
-        if (latestProject != null) {
+        if (userProject != null) {
             try {
                 // Refresh progress first (ensures status is up-to-date)
-                progress = projectService.refreshProjectProgress(latestProject.getProjectId());
-                projectDetail = projectService.getProjectDetail(latestProject.getProjectId());
+                progress = projectService.refreshProjectProgress(userProject.getProjectId());
+                projectDetail = projectService.getProjectDetail(userProject.getProjectId());
             } catch (Exception e) {
-                log.warn("Failed to load project detail for projectId={}: {}", latestProject.getProjectId(), e.getMessage());
+                log.warn("Failed to load project detail for projectId={}: {}", userProject.getProjectId(), e.getMessage());
             }
 
             // Latest AI review
             LambdaQueryWrapper<ReviewRecord> reviewQuery = new LambdaQueryWrapper<ReviewRecord>()
-                .eq(ReviewRecord::getProjectId, latestProject.getProjectId())
+                .eq(ReviewRecord::getProjectId, userProject.getProjectId())
                 .eq(ReviewRecord::getReviewType, "ai")
                 .orderByDesc(ReviewRecord::getReviewId)
                 .last("limit 1");
@@ -158,8 +180,8 @@ public class DashboardController {
 
             if (latestReview != null && progress != null) {
                 aiCheck = new LinkedHashMap<>();
-                aiCheck.put("projectId", latestProject.getProjectId());
-                aiCheck.put("projectName", latestProject.getProjectName());
+                aiCheck.put("projectId", userProject.getProjectId());
+                aiCheck.put("projectName", userProject.getProjectName());
                 aiCheck.put("reviewResult", latestReview.getReviewResult());
                 aiCheck.put("reviewComment", latestReview.getReviewComment());
                 aiCheck.put("completionRate", progress.getCompletionRate());

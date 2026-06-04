@@ -10,4 +10,6 @@ import java.util.List;
 public interface ProjectMemberMapper extends BaseMapper<ProjectMember> {
 
     List<ProjectMemberView> findMemberViewsByProjectId(@Param("projectId") Long projectId);
+
+    List<Long> findProjectIdsByUserId(@Param("userId") Long userId);
 }

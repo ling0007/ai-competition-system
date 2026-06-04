@@ -1,7 +1,7 @@
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
-
+always use Chinese for all communication.
 ## Build & Run
 
 ### Backend (Spring Boot)

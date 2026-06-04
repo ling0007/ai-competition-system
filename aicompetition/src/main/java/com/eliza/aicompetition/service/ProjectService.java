@@ -1,5 +1,7 @@
 package com.eliza.aicompetition.service;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.eliza.aicompetition.dto.project.AddMemberRequest;
 import com.eliza.aicompetition.dto.project.CreateProjectRequest;
 import com.eliza.aicompetition.dto.project.ProjectCreateResponse;
 import com.eliza.aicompetition.dto.project.ProjectDetailResponse;
@@ -163,6 +165,47 @@ public class ProjectService {
 
     public ProjectProgressResponse getProgress(Long projectId) {
         return refreshProjectProgress(projectId);
+    }
+
+    @Transactional
+    public void addMember(Long projectId, AddMemberRequest request) {
+        // Ensure project exists
+        getProjectOrThrow(projectId);
+        // Ensure user exists
+        validateUser(request.getUserId());
+
+        // Check for duplicate membership
+        long count = projectMemberMapper.selectCount(
+            new LambdaQueryWrapper<ProjectMember>()
+                .eq(ProjectMember::getProjectId, projectId)
+                .eq(ProjectMember::getUserId, request.getUserId())
+        );
+        if (count > 0) {
+            throw new BusinessException("该用户已是项目成员，不可重复添加");
+        }
+
+        ProjectMember member = new ProjectMember();
+        member.setProjectId(projectId);
+        member.setUserId(request.getUserId());
+        member.setMemberRole(request.getMemberRole());
+        member.setJoinTime(LocalDateTime.now());
+        projectMemberMapper.insert(member);
+    }
+
+    @Transactional
+    public void removeMember(Long projectId, Long memberId) {
+        // Ensure project exists
+        getProjectOrThrow(projectId);
+
+        ProjectMember member = projectMemberMapper.selectById(memberId);
+        if (member == null || !member.getProjectId().equals(projectId)) {
+            throw new BusinessException("项目成员记录不存在");
+        }
+        if ("leader".equals(member.getMemberRole())) {
+            throw new BusinessException("项目负责人不可移除");
+        }
+
+        projectMemberMapper.deleteById(memberId);
     }
 
     public CompetitionProject getProjectOrThrow(Long projectId) {

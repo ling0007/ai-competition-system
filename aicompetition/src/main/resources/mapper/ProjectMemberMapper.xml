@@ -24,4 +24,12 @@
                  pm.member_id ASC
     </select>
 
+    <select id="findProjectIdsByUserId" resultType="java.lang.Long">
+        SELECT pm.project_id
+        FROM project_member pm
+        WHERE pm.user_id = #{userId}
+          AND pm.is_deleted = 0
+        ORDER BY pm.project_id DESC
+    </select>
+
 </mapper>

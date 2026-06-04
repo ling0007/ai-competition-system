@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.ProjectMaterialMapper">
+
+    <select id="findLatestDetailsByProjectId" resultType="com.eliza.aicompetition.dto.project.ProjectMaterialView">
+        SELECT
+            pm.material_id,
+            mr.requirement_id,
+            mr.requirement_name,
+            mr.is_required AS required_flag,
+            mr.description,
+            COALESCE(pm.submit_status, 'pending') AS submit_status,
+            pm.file_id,
+            fa.file_name,
+            pm.version_no,
+            pm.remark,
+            pm.submitted_at
+        FROM competition_project cp
+        JOIN material_requirement mr
+          ON mr.notice_id = cp.notice_id
+         AND mr.is_deleted = 0
+        LEFT JOIN (
+            SELECT pm_inner.*
+            FROM project_material pm_inner
+            JOIN (
+                SELECT project_id, requirement_id, MAX(version_no) AS max_version_no
+                FROM project_material
+                WHERE is_deleted = 0
+                GROUP BY project_id, requirement_id
+            ) latest_pm
+              ON latest_pm.project_id = pm_inner.project_id
+             AND latest_pm.requirement_id = pm_inner.requirement_id
+             AND latest_pm.max_version_no = pm_inner.version_no
+            WHERE pm_inner.is_deleted = 0
+        ) pm
+          ON pm.project_id = cp.project_id
+         AND pm.requirement_id = mr.requirement_id
+        LEFT JOIN file_asset fa
+          ON fa.file_id = pm.file_id
+         AND fa.is_deleted = 0
+        WHERE cp.project_id = #{projectId}
+          AND cp.is_deleted = 0
+        ORDER BY mr.sort_no ASC, mr.requirement_id ASC
+    </select>
+
+</mapper>

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.ProjectMemberMapper">
+
+    <select id="findMemberViewsByProjectId" resultType="com.eliza.aicompetition.dto.project.ProjectMemberView">
+        SELECT
+            pm.member_id,
+            pm.user_id,
+            su.real_name,
+            pm.member_role
+        FROM project_member pm
+        JOIN sys_user su
+          ON su.user_id = pm.user_id
+         AND su.is_deleted = 0
+        WHERE pm.project_id = #{projectId}
+          AND pm.is_deleted = 0
+        ORDER BY CASE pm.member_role
+                     WHEN 'leader' THEN 1
+                     WHEN 'advisor' THEN 2
+                     ELSE 3
+                 END,
+                 pm.member_id ASC
+    </select>
+
+</mapper>

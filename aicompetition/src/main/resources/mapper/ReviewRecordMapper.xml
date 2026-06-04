@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.ReviewRecordMapper">
+
+    <select id="findReviewViewsByProjectId" resultType="com.eliza.aicompetition.dto.project.ReviewRecordView">
+        SELECT
+            rr.review_id,
+            rr.review_type,
+            rr.review_result,
+            rr.review_comment,
+            su.real_name AS reviewer_name,
+            rr.created_at
+        FROM review_record rr
+        LEFT JOIN sys_user su
+          ON su.user_id = rr.reviewer_id
+         AND su.is_deleted = 0
+        WHERE rr.project_id = #{projectId}
+          AND rr.is_deleted = 0
+        ORDER BY rr.created_at DESC, rr.review_id DESC
+    </select>
+
+</mapper>

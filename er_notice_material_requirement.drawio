@@ -1,0 +1,63 @@
+<mxfile host="app.diagrams.net" agent="Codex">
+  <diagram id="er-notice-material" name="Page-1">
+    <mxGraphModel dx="757" dy="418" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="1000" background="#ffffff" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="title" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=20;fontStyle=1;fontColor=#111827;" value="AI校园竞赛申报材料检查与进度辅助系统&lt;br&gt;局部 E-R 图 2：通知—材料要求" vertex="1">
+          <mxGeometry height="60" width="700" x="330" y="30" as="geometry" />
+        </mxCell>
+        <mxCell id="file_header" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#7A8AA0;strokeWidth=1.4;fillColor=#EAF2FF;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=13;fontStyle=1;fontColor=#111827;" value="file_asset&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;文件资源表&lt;/font&gt;" vertex="1">
+          <mxGeometry height="46" width="280" x="80" y="158" as="geometry" />
+        </mxCell>
+        <mxCell id="file_body" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#7A8AA0;strokeWidth=1.4;fillColor=#FFFFFF;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Microsoft YaHei;fontSize=12;fontColor=#111827;" value="&lt;div style=&quot;text-align:left;line-height:1.58;&quot;&gt;&lt;b&gt;file_id&lt;/b&gt; (PK)&lt;br&gt;biz_type&lt;br&gt;file_name&lt;br&gt;file_ext&lt;br&gt;file_size&lt;br&gt;storage_path&lt;br&gt;file_blob&lt;br&gt;uploaded_by (FK)&lt;br&gt;created_at&lt;/div&gt;" vertex="1">
+          <mxGeometry height="203" width="280" x="80" y="202" as="geometry" />
+        </mxCell>
+        <mxCell id="notice_header" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#36393d;strokeWidth=1.4;fillColor=#cdeb8b;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=13;fontStyle=1;" value="competition_notice&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;竞赛通知表&lt;/font&gt;" vertex="1">
+          <mxGeometry height="46" width="278" x="514" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="notice_body" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#7A8AA0;strokeWidth=1.4;fillColor=#FFFFFF;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Microsoft YaHei;fontSize=12;fontColor=#111827;" value="&lt;div style=&quot;text-align:left;line-height:1.46;&quot;&gt;&lt;b&gt;notice_id&lt;/b&gt; (PK)&lt;br&gt;title&lt;br&gt;organizer&lt;br&gt;deadline&lt;br&gt;target_group&lt;br&gt;raw_text&lt;br&gt;ai_summary&lt;br&gt;notice_file_id (FK)&lt;br&gt;created_by (FK)&lt;br&gt;created_at&lt;/div&gt;" vertex="1">
+          <mxGeometry height="199" width="278" x="514" y="189" as="geometry" />
+        </mxCell>
+        <mxCell id="req_header" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#d6b656;strokeWidth=1.4;fillColor=#fff2cc;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=13;fontStyle=1;" value="material_requirement&lt;br&gt;&lt;font style=&quot;font-size:10px;&quot;&gt;材料要求表&lt;/font&gt;" vertex="1">
+          <mxGeometry height="46" width="290" x="914" y="145" as="geometry" />
+        </mxCell>
+        <mxCell id="req_body" parent="1" style="rounded=0;whiteSpace=wrap;html=1;strokeColor=#7A8AA0;strokeWidth=1.4;fillColor=#FFFFFF;align=left;verticalAlign=top;spacingLeft=12;spacingTop=10;fontFamily=Microsoft YaHei;fontSize=12;fontColor=#111827;" value="&lt;div style=&quot;text-align:left;line-height:1.65;&quot;&gt;&lt;b&gt;requirement_id&lt;/b&gt; (PK)&lt;br&gt;notice_id (FK)&lt;br&gt;requirement_name&lt;br&gt;is_required&lt;br&gt;description&lt;br&gt;sort_no&lt;/div&gt;" vertex="1">
+          <mxGeometry height="175" width="290" x="914" y="191" as="geometry" />
+        </mxCell>
+        <mxCell id="e_notice_req" edge="1" parent="1" source="notice_body" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5B6575;strokeWidth=1.2;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#334155;labelBackgroundColor=#FFFFFF;endArrow=none;startArrow=none;exitX=1;exitY=0.22;" target="req_body" value="生成材料要求（notice_id 关联）">
+          <mxGeometry relative="1" x="0.1351" y="14" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="929" y="240" />
+              <mxPoint x="929" y="240" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e_notice_file" edge="1" parent="1" source="notice_body" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;strokeColor=#5B6575;strokeWidth=1.2;fontFamily=Microsoft YaHei;fontSize=11;fontColor=#334155;labelBackgroundColor=#FFFFFF;endArrow=none;startArrow=none;entryX=1;entryY=0.34;" value="引用通知文件（notice_file_id 关联）">
+          <mxGeometry relative="1" x="0.0463" y="-7" as="geometry">
+            <mxPoint as="offset" />
+            <Array as="points">
+              <mxPoint x="415" y="262" />
+              <mxPoint x="415" y="362" />
+            </Array>
+            <mxPoint x="470" y="344" as="sourcePoint" />
+            <mxPoint x="360" y="362.20000000000005" as="targetPoint" />
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="card_notice_req_1" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=12;fontStyle=1;fontColor=#111827;" value="1" vertex="1">
+          <mxGeometry height="24" width="24" x="788" y="238" as="geometry" />
+        </mxCell>
+        <mxCell id="card_notice_req_n" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=12;fontStyle=1;fontColor=#111827;" value="n" vertex="1">
+          <mxGeometry height="24" width="24" x="890" y="238" as="geometry" />
+        </mxCell>
+        <mxCell id="card_notice_file_1_left" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=12;fontStyle=1;fontColor=#111827;" value="1" vertex="1">
+          <mxGeometry height="24" width="24" x="367" y="335" as="geometry" />
+        </mxCell>
+        <mxCell id="card_notice_file_1_center" parent="1" style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;fontFamily=Microsoft YaHei;fontSize=12;fontStyle=1;fontColor=#111827;" value="1" vertex="1">
+          <mxGeometry height="24" width="24" x="446" y="255" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

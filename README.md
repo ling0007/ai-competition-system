@@ -216,16 +216,87 @@ VITE_USE_MOCK=true
 
 ## 构建部署
 
-### 后端
+### 方式一：Docker 一键部署（推荐）
+
+项目根目录提供了多阶段 Dockerfile，构建产物包含前端和后端，可直接部署到任意支持 Docker 的平台。
 
 ```bash
-cd aicompetition
+# 本地构建 Docker 镜像
+docker build -t ai-competition .
+
+# 本地运行（需配置数据库环境变量）
+docker run -p 8080:8080 \
+  -e DB_HOST=your-db-host \
+  -e DB_PORT=4000 \
+  -e DB_NAME=ai_competition_db \
+  -e DB_USERNAME=your-username \
+  -e DB_PASSWORD=your-password \
+  -e DB_SSL=true \
+  -e DB_REQUIRE_SSL=true \
+  -e JWT_SECRET=your-random-secret \
+  -e DASHSCOPE_API_KEY=your-api-key \
+  ai-competition
+```
+
+### 方式二：免费云端部署（Render + TiDB Cloud）
+
+完全免费将项目部署到线上，总计 **$0/月**。
+
+#### 1. 准备免费 MySQL 数据库
+
+使用 [TiDB Cloud Serverless Tier](https://tidbcloud.com)（MySQL 兼容，5GB 永久免费）：
+
+1. 注册并登录 [tidbcloud.com](https://tidbcloud.com)
+2. 创建 **Serverless Tier** 集群
+3. 在集群详情页 → **Connect** → 获取连接信息：
+   - Host: `xxx.tidbcloud.com`
+   - Port: `4000`
+   - User: `xxx.root`
+   - 设置密码并保存
+
+> 备选：[Aiven MySQL](https://aiven.io)（免费 5GB）、[freedb.tech](https://freedb.tech)
+
+#### 2. 部署到 Render
+
+[Render](https://render.com) 免费计划支持 Docker 部署（512MB RAM，750h/月）。
+
+1. 将项目推送到 GitHub 仓库
+2. 登录 [render.com](https://render.com)，点击 **New → Web Service**
+3. 连接 GitHub 仓库，Render 会自动识别 `render.yaml` 配置
+4. 配置以下环境变量（`render.yaml` 中已预定义）：
+
+| 环境变量 | 说明 | 示例 |
+|---------|------|------|
+| `DB_HOST` | TiDB Cloud 主机地址 | `xxx.tidbcloud.com` |
+| `DB_PORT` | 数据库端口 | `4000` |
+| `DB_NAME` | 数据库名 | `ai_competition_db` |
+| `DB_USERNAME` | 数据库用户名 | `xxx.root` |
+| `DB_PASSWORD` | 数据库密码 | 你设置的密码 |
+| `DB_SSL` | 启用 SSL | `true` |
+| `DB_REQUIRE_SSL` | 强制 SSL | `true` |
+| `DASHSCOPE_API_KEY` | AI 功能（可选） | `sk-xxx` |
+
+5. 点击 **Create Web Service**，等待构建完成（约 5-10 分钟）
+6. 首次启动时 Flyway 会自动创建数据库表结构
+
+> **免费计划休眠说明**：Render 免费服务在 15 分钟无请求后会休眠，下次请求需等待约 30-60 秒冷启动。可使用 [UptimeRobot](https://uptimerobot.com)（免费）每 5 分钟 ping 一次避免休眠。
+
+#### 3. 访问
+
+部署完成后访问 Render 分配的 URL（如 `https://ai-competition.onrender.com`），即可使用系统。
+
+### 方式三：本地构建
+
+#### 后端
+
+```bash
+cd backend
 ./mvnw clean package -DskipTests
 # 生成的 JAR 位于 target/aicompetition-0.0.1-SNAPSHOT.jar
 java -jar target/aicompetition-0.0.1-SNAPSHOT.jar
 ```
 
-### 前端
+#### 前端
 
 ```bash
 cd frontend

@@ -1,10 +1,14 @@
-const MOCK_USERS = [
+export const MOCK_USERS = [
   { userId: 1, username: 'admin', password: '123456', realName: '系统管理员', role: 'admin', phone: '13800000001' },
   { userId: 2, username: 'teacher01', password: '123456', realName: '张老师', role: 'teacher', phone: '13800000002' },
   { userId: 3, username: 'student01', password: '123456', realName: '李同学', role: 'student', phone: '13800000003' },
 ]
 
-let nextId = 4
+export let nextId = 4
+
+export function getNextId() {
+  return nextId++
+}
 
 function delayResponse(data, message = 'success', ms = 280) {
   return new Promise((resolve) => {
@@ -14,7 +18,7 @@ function delayResponse(data, message = 'success', ms = 280) {
   })
 }
 
-function makeFakeToken(user) {
+export function makeFakeToken(user) {
   const payload = {
     sub: String(user.userId),
     username: user.username,
@@ -39,6 +43,7 @@ export function login({ username, password }) {
       username: user.username,
       realName: user.realName,
       role: user.role,
+      phone: user.phone,
     },
     '登录成功',
   )
@@ -64,6 +69,7 @@ export function register({ username, password, confirmPassword, realName, role, 
       username: user.username,
       realName: user.realName,
       role: user.role,
+      phone: user.phone,
     },
     '注册成功',
   )

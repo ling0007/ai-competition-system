@@ -1,0 +1,7 @@
+# Exclude from Docker build context for faster builds
+backend/target/
+frontend/node_modules/
+frontend/dist/
+.git/
+.idea/
+.claude/

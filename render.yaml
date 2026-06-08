@@ -1,0 +1,57 @@
+# ============================================================
+# Render Blueprint - AI Competition Management System
+# ============================================================
+# Render automatically detects this file and configures the service.
+# See: https://render.com/docs/blueprint-spec
+# ============================================================
+
+services:
+  - type: web
+    name: ai-competition
+    runtime: docker
+    repo: https://github.com/ling0007/aicompetition.git
+    plan: free
+    healthCheckPath: /
+    envVars:
+      # ---- Database (TiDB Cloud Serverless) ----
+      # Sign up at https://tidbcloud.com → Create Serverless Tier cluster
+      # Replace the values below with your actual TiDB Cloud connection info
+      - key: DB_HOST
+        sync: false
+      - key: DB_PORT
+        value: "4000"
+        sync: false
+      - key: DB_NAME
+        value: ai_competition_db
+        sync: false
+      - key: DB_USERNAME
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_SSL
+        value: "true"
+        sync: false
+      - key: DB_REQUIRE_SSL
+        value: "true"
+        sync: false
+
+      # ---- JWT Secret ----
+      # Generate a random string: openssl rand -hex 32
+      - key: JWT_SECRET
+        generateValue: true
+        sync: false
+
+      # ---- Spring Profile ----
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+        sync: false
+
+      # ---- AI (DashScope) - Optional ----
+      # Get API key from: https://dashscope.console.aliyun.com/apiKey
+      - key: DASHSCOPE_API_KEY
+        sync: false
+
+      # ---- JVM Options ----
+      - key: JAVA_OPTS
+        value: "-Xmx256m -Xms128m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        sync: false

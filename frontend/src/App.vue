@@ -8,9 +8,11 @@ import {
   LayoutDashboard,
   School,
 } from 'lucide-vue-next'
+import AdminDashboard from '@/components/admin/AdminDashboard.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import LoginPage from '@/components/auth/LoginPage.vue'
 import RegisterPage from '@/components/auth/RegisterPage.vue'
+import UserProfileDialog from '@/components/user/UserProfileDialog.vue'
 import MaterialCheckPanel from '@/components/dashboard/MaterialCheckPanel.vue'
 import MaterialReviewPanel from '@/components/dashboard/MaterialReviewPanel.vue'
 import NoticeUploadPanel from '@/components/dashboard/NoticeUploadPanel.vue'
@@ -60,6 +62,8 @@ const fileViewerVisible = ref(false)
 const fileViewerFileId = ref(null)
 const fileViewerFileName = ref('')
 const isTeacher = computed(() => currentUser.value?.role === 'teacher')
+const isAdmin = computed(() => currentUser.value?.role === 'admin')
+const profileDialogVisible = ref(false)
 
 const loading = reactive({
   bootstrap: false,
@@ -426,8 +430,12 @@ function enterDashboard(userData) {
     username: userData.username,
     realName: userData.realName,
     role: userData.role,
+    phone: userData.phone || '',
   }
   currentView.value = 'dashboard'
+  if (userData.role === 'admin') {
+    return
+  }
   nextTick(async () => {
     await loadDashboardBootstrap()
     await nextTick()
@@ -446,6 +454,13 @@ function handleLogout() {
   sectionObserver?.disconnect()
 }
 
+function handleProfileUpdated(profileData) {
+  if (currentUser.value) {
+    currentUser.value.realName = profileData.realName
+    currentUser.value.phone = profileData.phone
+  }
+}
+
 onMounted(async () => {
   const token = localStorage.getItem('auth_token')
   if (token) {
@@ -457,9 +472,11 @@ onMounted(async () => {
         role: payload.role,
       }
       currentView.value = 'dashboard'
-      await loadDashboardBootstrap()
-      await nextTick()
-      initSectionObserver()
+      if (payload.role !== 'admin') {
+        await loadDashboardBootstrap()
+        await nextTick()
+        initSectionObserver()
+      }
       return
     }
     localStorage.removeItem('auth_token')
@@ -482,6 +499,10 @@ onBeforeUnmount(() => {
     v-else-if="currentView === 'register'"
     @switch-to-login="currentView = 'login'"
   />
+  <AdminDashboard
+    v-else-if="isAdmin"
+    @logout="handleLogout"
+  />
   <AppShell
     v-else
     :collapsed="sidebarCollapsed"
@@ -493,6 +514,7 @@ onBeforeUnmount(() => {
   >
     <template #hero-actions>
       <span class="app-shell__user-info">{{ currentUser?.realName || currentUser?.username }}</span>
+      <el-button class="app-button--secondary" @click="profileDialogVisible = true">个人信息</el-button>
       <el-button v-if="isTeacher" type="primary" @click="scrollToSection('overview')">我的项目</el-button>
       <el-button v-else type="primary" @click="scrollToSection('project')">新建项目</el-button>
       <el-button class="app-button--secondary" @click="scrollToSection('notice')">上传通知</el-button>
@@ -650,6 +672,13 @@ onBeforeUnmount(() => {
     :file-name="fileViewerFileName"
     :visible="fileViewerVisible"
     @close="fileViewerVisible = false"
+  />
+
+  <UserProfileDialog
+    :visible="profileDialogVisible"
+    :current-user="currentUser"
+    @close="profileDialogVisible = false"
+    @updated="handleProfileUpdated"
   />
 </template>
 

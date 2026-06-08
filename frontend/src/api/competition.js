@@ -143,7 +143,9 @@ export async function downloadFileBlob(fileId) {
     return blob
   }
 
-  const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080'
+  const baseURL = import.meta.env.VITE_API_BASE_URL != null
+    ? import.meta.env.VITE_API_BASE_URL
+    : 'http://localhost:8080'
   const token = localStorage.getItem('auth_token')
   const response = await fetch(`${baseURL}/file/${fileId}/download`, {
     headers: { Authorization: `Bearer ${token}` },

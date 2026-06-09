@@ -28,11 +28,8 @@ services:
         sync: false
       - key: DB_PASSWORD
         sync: false
-      - key: DB_SSL
-        value: "true"
-        sync: false
-      - key: DB_REQUIRE_SSL
-        value: "true"
+      - key: DB_SSL_MODE
+        value: VERIFY_CA
         sync: false
 
       # ---- JWT Secret ----

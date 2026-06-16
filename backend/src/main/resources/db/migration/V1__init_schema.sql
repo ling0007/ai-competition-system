@@ -1,6 +1,6 @@
 -- ============================================================
 -- AI Competition System — Complete Schema Initialization
--- Single migration (V1) for TiDB compatibility
+-- Single migration (V1) — complete schema initialization
 -- ============================================================
 
 -- ============================================================

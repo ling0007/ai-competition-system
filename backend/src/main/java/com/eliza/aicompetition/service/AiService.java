@@ -78,7 +78,7 @@ public class AiService {
                 result.keyPoints() != null ? result.keyPoints().length() : 0);
             return result;
         } catch (Exception e) {
-            log.error("LLM parseNotice failed: {}", e.getMessage());
+            log.error("LLM parseNotice failed — returning fallback result. Error: {}", e.getMessage());
             return fallbackParseNotice();
         }
     }
@@ -98,7 +98,7 @@ public class AiService {
             log.info("LLM checkMaterial response length: {}", response.length());
             return objectMapper.readValue(cleanJson(response), AiCheckResult.class);
         } catch (Exception e) {
-            log.error("LLM checkMaterial failed: {}", e.getMessage());
+            log.error("LLM checkMaterial failed — returning fallback result. Error: {}", e.getMessage());
             return fallbackCheckMaterial();
         }
     }

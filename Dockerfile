@@ -31,6 +31,6 @@ RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 USER appuser
 WORKDIR /app
 COPY --from=backend-builder /app/backend/target/*.jar app.jar
-ENV JAVA_OPTS="-Xmx200m -Xms64m -XX:MaxMetaspaceSize=80m -Xss512k -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError"
+ENV JAVA_OPTS="-Xmx512m -Xms128m -XX:MaxMetaspaceSize=128m -Xss512k -XX:+ExitOnOutOfMemoryError"
 EXPOSE 8080
 ENTRYPOINT ["sh", "-c", "java $JAVA_OPTS -jar app.jar"]

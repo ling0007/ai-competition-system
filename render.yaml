@@ -13,13 +13,12 @@ services:
     plan: free
     healthCheckPath: /
     envVars:
-      # ---- Database (TiDB Cloud Serverless) ----
-      # Sign up at https://tidbcloud.com → Create Serverless Tier cluster
-      # Replace the values below with your actual TiDB Cloud connection info
+      # ---- Database (Aiven MySQL) ----
+      # Set these in Render Dashboard → Environment Variables
       - key: DB_HOST
         sync: false
       - key: DB_PORT
-        value: "4000"
+        value: "3306"
         sync: false
       - key: DB_NAME
         value: ai_competition_db
@@ -29,7 +28,7 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: DB_SSL_MODE
-        value: PREFERRED
+        value: REQUIRED
         sync: false
 
       # ---- JWT Secret ----
@@ -49,6 +48,7 @@ services:
         sync: false
 
       # ---- JVM Options ----
+      # 512MB heap required for PDF rendering (PDFBox + base64 encoding)
       - key: JAVA_OPTS
-        value: "-Xmx200m -Xms64m -XX:MaxMetaspaceSize=80m -Xss512k -XX:+UseSerialGC"
+        value: "-Xmx512m -Xms128m -XX:MaxMetaspaceSize=128m -Xss512k -XX:+ExitOnOutOfMemoryError"
         sync: false

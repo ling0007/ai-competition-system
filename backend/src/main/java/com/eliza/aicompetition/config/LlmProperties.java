@@ -11,5 +11,7 @@ public record LlmProperties(
     String key,
     String model,
     Double temperature,
-    Integer maxTokens
+    Integer maxTokens,
+    String visionModel,
+    Integer visionMaxTokens
 ) {}

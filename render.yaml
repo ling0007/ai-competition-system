@@ -9,7 +9,7 @@ services:
   - type: web
     name: ai-competition
     runtime: docker
-    repo: https://github.com/ling0007/aicompetition.git
+    repo: https://github.com/ling0007/ai-competition-system.git
     plan: free
     healthCheckPath: /
     envVars:
@@ -29,7 +29,7 @@ services:
       - key: DB_PASSWORD
         sync: false
       - key: DB_SSL_MODE
-        value: VERIFY_CA
+        value: PREFERRED
         sync: false
 
       # ---- JWT Secret ----

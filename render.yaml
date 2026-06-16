@@ -50,5 +50,5 @@ services:
 
       # ---- JVM Options ----
       - key: JAVA_OPTS
-        value: "-Xmx256m -Xms128m -XX:+UseG1GC -XX:MaxGCPauseMillis=200"
+        value: "-Xmx200m -Xms64m -XX:MaxMetaspaceSize=80m -Xss512k -XX:+UseSerialGC"
         sync: false

@@ -23,13 +23,17 @@ import java.io.IOException;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * OCR fallback for scanned/image PDFs that Tika cannot extract text from.
  * Renders PDF pages as images and sends them to DashScope's
- * multimodal model (e.g. qwen-vl-max) for text extraction.
+ * multimodal model (e.g. qwen-vl-plus) for text extraction.
  *
- * <p>No local OCR installation required — uses the same DashScope API.</p>
+ * <p>Pages are processed in parallel to minimize total latency.</p>
  */
 @Component
 public class PdfOcrExtractor {
@@ -51,6 +55,9 @@ public class PdfOcrExtractor {
     /** JPEG compression quality (0.0–1.0). 0.75 gives good size reduction with minimal quality loss. */
     private static final float JPEG_QUALITY = 0.75f;
 
+    /** Timeout per page for parallel vision model calls. */
+    private static final long PAGE_TIMEOUT_SECONDS = 120;
+
     private final RestTemplate restTemplate;
     private final LlmProperties llmProperties;
 
@@ -63,11 +70,12 @@ public class PdfOcrExtractor {
 
     /**
      * Attempt OCR on a PDF using the DashScope vision model.
+     * Pages are rendered sequentially (CPU-bound), then sent to the
+     * vision model in parallel (I/O-bound) to minimize total latency.
      *
      * @param pdfBytes the raw PDF file content
      * @return extracted text from all rendered pages, or null if OCR fails
      */
-    @SuppressWarnings("unchecked")
     public String ocrPdf(byte[] pdfBytes) {
         if (pdfBytes == null || pdfBytes.length == 0) {
             return null;
@@ -79,62 +87,124 @@ public class PdfOcrExtractor {
             int totalPages = document.getNumberOfPages();
             int pagesToOcr = Math.min(totalPages, MAX_PAGES);
             PDFRenderer renderer = new PDFRenderer(document);
-            StringBuilder result = new StringBuilder();
 
+            // Phase 1: Render all pages to base64 images (CPU-bound, sequential is fine)
+            String[] pageImages = new String[pagesToOcr];
             for (int page = 0; page < pagesToOcr; page++) {
-                log.info("OCR processing page {}/{}", page + 1, pagesToOcr);
-
-                // Render page to image
-                BufferedImage image = renderer.renderImageWithDPI(page, RENDER_DPI);
-
-                // Scale down if too wide
-                if (image.getWidth() > MAX_WIDTH) {
-                    image = resizeImage(image, MAX_WIDTH);
+                String base64 = renderPageToBase64(renderer, page, pagesToOcr);
+                pageImages[page] = base64;
+                if (base64 == null) {
+                    log.warn("Page {} rendering failed, will skip it", page + 1);
                 }
+            }
 
-                // Convert to JPEG (much smaller than PNG for photos/scanned documents)
-                byte[] imageBytes = toJpegBytes(image);
+            // Phase 2: Send all valid pages to vision model in parallel (I/O-bound)
+            ExecutorService executor = Executors.newFixedThreadPool(
+                Math.min(pagesToOcr, 3),
+                r -> {
+                    Thread t = new Thread(r, "ocr-vision");
+                    t.setDaemon(true);
+                    return t;
+                });
 
-                log.info("Page {}: image {}x{}, {} bytes (JPEG q={})",
-                    page + 1, image.getWidth(), image.getHeight(),
-                    imageBytes.length, JPEG_QUALITY);
-
-                if (imageBytes.length > MAX_IMAGE_BYTES) {
-                    log.warn("Page {} image still too large ({} bytes, max {}), retrying with lower quality",
-                        page + 1, imageBytes.length, MAX_IMAGE_BYTES);
-                    // Retry with lower JPEG quality
-                    imageBytes = toJpegBytes(image, 0.4f);
-                    log.info("Page {}: retry image size {} bytes", page + 1, imageBytes.length);
-                    if (imageBytes.length > MAX_IMAGE_BYTES) {
-                        log.warn("Page {} image still too large, skipping", page + 1);
-                        continue;
+            try {
+                @SuppressWarnings("unchecked")
+                CompletableFuture<String>[] futures = new CompletableFuture[pagesToOcr];
+                for (int page = 0; page < pagesToOcr; page++) {
+                    final int pageNum = page;
+                    final String base64 = pageImages[page];
+                    if (base64 == null) {
+                        futures[page] = CompletableFuture.completedFuture(null);
+                    } else {
+                        futures[page] = CompletableFuture.supplyAsync(
+                            () -> {
+                                log.info("Vision call started for page {}", pageNum + 1);
+                                String text = callVisionModel(base64);
+                                log.info("Vision call finished for page {}: {} chars",
+                                    pageNum + 1, text != null ? text.length() : 0);
+                                return text;
+                            },
+                            executor
+                        ).orTimeout(PAGE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+                         .exceptionally(ex -> {
+                             log.warn("Page {} vision call failed: {}", pageNum + 1, ex.getMessage());
+                             return null;
+                         });
                     }
                 }
 
-                String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-                log.info("Page {}: base64 length={}", page + 1, base64Image.length());
+                // Wait for all pages and assemble in order
+                CompletableFuture.allOf(futures).join();
 
-                String pageText = callVisionModel(base64Image);
-
-                if (pageText != null && !pageText.isBlank()) {
-                    result.append(pageText).append("\n");
-                    log.info("Page {}: extracted {} chars", page + 1, pageText.length());
+                StringBuilder result = new StringBuilder();
+                for (int page = 0; page < pagesToOcr; page++) {
+                    String pageText = futures[page].getNow(null);
+                    if (pageText != null && !pageText.isBlank()) {
+                        result.append(pageText).append("\n");
+                    }
                 }
-            }
 
-            String text = result.toString().trim();
-            if (text.isEmpty()) {
-                log.warn("Vision OCR produced no text from {} pages", pagesToOcr);
-                return null;
+                String text = result.toString().trim();
+                if (text.isEmpty()) {
+                    log.warn("Vision OCR produced no text from {} pages", pagesToOcr);
+                    return null;
+                }
+                log.info("Vision OCR extracted {} chars total from {} PDF pages (parallel)",
+                    text.length(), pagesToOcr);
+                return text;
+
+            } finally {
+                executor.shutdownNow();
             }
-            log.info("Vision OCR extracted {} chars total from {} PDF pages", text.length(), pagesToOcr);
-            return text;
 
         } catch (IOException e) {
             log.error("Failed to load/render PDF for vision OCR: {}", e.getMessage());
             return null;
         } catch (Exception e) {
             log.error("Vision OCR failed: {}", e.getMessage(), e);
+            return null;
+        }
+    }
+
+    /**
+     * Render a single PDF page to a base64-encoded JPEG string.
+     * Returns null if the page cannot be rendered or is too large.
+     */
+    private String renderPageToBase64(PDFRenderer renderer, int page, int totalPages) {
+        try {
+            log.info("Rendering page {}/{}", page + 1, totalPages);
+
+            BufferedImage image = renderer.renderImageWithDPI(page, RENDER_DPI);
+
+            // Scale down if too wide
+            if (image.getWidth() > MAX_WIDTH) {
+                image = resizeImage(image, MAX_WIDTH);
+            }
+
+            // Convert to JPEG
+            byte[] imageBytes = toJpegBytes(image);
+
+            log.info("Page {}: image {}x{}, {} bytes (JPEG q={})",
+                page + 1, image.getWidth(), image.getHeight(),
+                imageBytes.length, JPEG_QUALITY);
+
+            if (imageBytes.length > MAX_IMAGE_BYTES) {
+                log.warn("Page {} image too large ({} bytes), retrying with lower quality",
+                    page + 1, imageBytes.length);
+                imageBytes = toJpegBytes(image, 0.4f);
+                log.info("Page {}: retry image size {} bytes", page + 1, imageBytes.length);
+                if (imageBytes.length > MAX_IMAGE_BYTES) {
+                    log.warn("Page {} image still too large, skipping", page + 1);
+                    return null;
+                }
+            }
+
+            String base64 = Base64.getEncoder().encodeToString(imageBytes);
+            log.info("Page {}: base64 length={}", page + 1, base64.length());
+            return base64;
+
+        } catch (IOException e) {
+            log.error("Failed to render page {}: {}", page + 1, e.getMessage());
             return null;
         }
     }
@@ -198,7 +268,6 @@ public class PdfOcrExtractor {
             return responseText;
 
         } catch (HttpClientErrorException e) {
-            // Capture full response body for diagnosis
             String responseBody = e.getResponseBodyAsString();
             log.error("Vision model HTTP {}: {}\nResponse headers: {}\nResponse body: {}",
                 e.getStatusCode().value(), e.getMessage(),
@@ -209,7 +278,7 @@ public class PdfOcrExtractor {
                 log.error(
                     "401 Unauthorized — possible causes:\n" +
                     "  1. API key has no vision model access (check DashScope console → Model Library → Vision)\n" +
-                    "  2. Model name '{}' is deprecated/wrong (try: qwen-vl-max-latest, qwen-vl-plus, qwen2.5-vl-72b-instruct)\n" +
+                    "  2. Model name '{}' is deprecated/wrong (try: qwen-vl-plus, qwen-vl-max-latest, qwen2.5-vl-72b-instruct)\n" +
                     "  3. DASHSCOPE_API_KEY env var is not set or has extra whitespace",
                     model);
             }
@@ -226,7 +295,6 @@ public class PdfOcrExtractor {
     }
 
     private byte[] toJpegBytes(BufferedImage image, float quality) throws IOException {
-        // Convert to RGB if necessary (JPEG doesn't support alpha)
         BufferedImage rgbImage = new BufferedImage(
             image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_RGB);
         Graphics2D g = rgbImage.createGraphics();

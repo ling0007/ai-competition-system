@@ -1,8 +1,6 @@
 DROP PROCEDURE IF EXISTS sp_refresh_project_progress;
 DROP PROCEDURE IF EXISTS sp_project_material_summary;
 
-DELIMITER $$
-
 CREATE PROCEDURE sp_refresh_project_progress(IN p_project_id BIGINT)
 BEGIN
     DECLARE v_required_total INT DEFAULT 0;
@@ -66,8 +64,7 @@ BEGIN
            status = v_project_status
      WHERE project_id = p_project_id
        AND is_deleted = 0;
-END
-$$
+END;
 
 CREATE PROCEDURE sp_project_material_summary(IN p_project_id BIGINT)
 BEGIN
@@ -117,7 +114,4 @@ BEGIN
       ON summary.project_id = cp.project_id
    WHERE cp.project_id = p_project_id
      AND cp.is_deleted = 0;
-END
-$$
-
-DELIMITER ;
+END;

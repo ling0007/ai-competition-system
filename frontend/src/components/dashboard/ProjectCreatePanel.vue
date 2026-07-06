@@ -377,18 +377,20 @@ async function handleRemoveMember(memberId, memberName, memberRole) {
 <style scoped lang="scss">
 .project-panel {
   display: grid;
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
 }
 
 .project-panel__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 }
 
 .project-panel__preview {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   padding: 24px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-sm);
@@ -405,14 +407,14 @@ async function handleRemoveMember(memberId, memberName, memberRole) {
 .project-panel__preview-head h3 {
   margin: 0 0 6px;
   color: var(--app-text-primary);
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 700;
 }
 
 .project-panel__preview-head p {
   margin: 0;
   color: var(--app-text-muted);
-  font-size: 13px;
+  font-size: 17px;
   line-height: 1.7;
 }
 
@@ -440,13 +442,13 @@ async function handleRemoveMember(memberId, memberName, memberRole) {
 .member-manager__head h4 {
   margin: 0;
   color: var(--app-text-primary);
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 600;
 }
 
 .member-manager__count {
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
 }
 
@@ -489,17 +491,17 @@ async function handleRemoveMember(memberId, memberName, memberRole) {
 
 .member-manager__item-name {
   color: var(--app-text-primary);
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 500;
 }
 
 .member-manager__item-role {
   display: inline-flex;
   align-items: center;
-  min-height: 22px;
-  padding: 0 8px;
+  min-height: 26px;
+  padding: 0 10px;
   border-radius: 999px;
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 600;
   line-height: 1.2;
 }
@@ -523,12 +525,13 @@ async function handleRemoveMember(memberId, memberName, memberRole) {
   padding: 16px;
   text-align: center;
   color: var(--app-text-muted);
-  font-size: 13px;
+  font-size: 16px;
 }
 
-@media (max-width: 860px) {
-  .project-panel__grid {
+@media (max-width: 900px) {
+  .project-panel {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
 
   .project-panel__preview-head {

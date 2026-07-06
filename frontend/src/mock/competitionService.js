@@ -139,6 +139,8 @@ function createInitialState() {
         createdAt: '2026-05-01T11:20:00',
       },
     ],
+    agentTaskLogs: initAgentTaskLogs(),
+    notifyMessages: initNotifyMessages(),
   }
 }
 
@@ -781,6 +783,161 @@ export function getProjectReviewStatus(projectId) {
   })
 
   return delayResponse(materials, '审核状态获取成功', 200)
+}
+
+// ===== 新增：审计日志 =====
+
+function initAgentTaskLogs() {
+  return [
+    {
+      taskId: 1,
+      projectId: 1,
+      toolName: 'checkMaterialTool',
+      inputSummary: '审核项目材料: 基于大模型的校园竞赛申报材料智能核验助手, 已提交=1/3, 可审核文件=1',
+      resultSummary: '【材料缺失】以下材料尚未提交：团队成员信息表、指导教师意见表。\n【内容审核】系统检查通过：所有必交材料已提交。当前无可审核的文件内容。',
+      executeStatus: 'success',
+      createdAt: '2026-05-01T11:20:00',
+    },
+    {
+      taskId: 2,
+      projectId: 1,
+      toolName: 'parseNoticeTool',
+      inputSummary: '解析通知: 大学生创新创业训练计划项目申报通知 (152 字符)',
+      resultSummary: '【AI解析】主办方：创新创业学院；截止时间：2026-06-15 23:59；面向对象：全日制本科生团队；关键内容：围绕创新创业训练计划项目开展申报；共识别 3 项材料要求：项目申报书、团队成员信息表、指导教师意见表。',
+      executeStatus: 'success',
+      createdAt: '2026-04-28T09:15:00',
+    },
+    {
+      taskId: 3,
+      projectId: null,
+      toolName: 'parseNoticeTool',
+      inputSummary: '解析通知: 2026年"挑战杯"大学生创业计划竞赛通知 (210 字符)',
+      resultSummary: '【AI解析】主办方：校团委；截止时间：2026-07-10 17:00；面向对象：全校本科生及研究生团队...',
+      executeStatus: 'success',
+      createdAt: '2026-04-20T14:30:00',
+    },
+    {
+      taskId: 4,
+      projectId: 2,
+      toolName: 'checkMaterialTool',
+      inputSummary: '审核项目材料: 智能校园导航系统, 已提交=2/4, 可审核文件=2',
+      resultSummary: '【材料缺失】以下材料尚未提交：团队成员信息表、商业计划书。\n【内容审核】项目申报书内容完整，路演PPT结构清晰。',
+      executeStatus: 'success',
+      createdAt: '2026-06-10T16:45:00',
+    },
+  ]
+}
+
+export function getAgentTaskLogs(params = {}) {
+  let logs = state.agentTaskLogs.slice()
+
+  if (params.projectId) {
+    logs = logs.filter((l) => l.projectId === params.projectId)
+  }
+  if (params.toolName) {
+    logs = logs.filter((l) => l.toolName === params.toolName)
+  }
+
+  logs.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  return delayResponse(logs, '审计日志查询成功', 220)
+}
+
+// ===== 新增：消息中心 =====
+
+function initNotifyMessages() {
+  return [
+    {
+      msgId: 1,
+      projectId: 1,
+      receiverId: 3,
+      msgType: 'material',
+      msgContent: "项目 '基于大模型的校园竞赛申报材料智能核验助手' 材料检查结果：warning。请查看审核意见并及时处理。",
+      isRead: 0,
+      createdAt: '2026-05-01T11:20:00',
+    },
+    {
+      msgId: 2,
+      projectId: 1,
+      receiverId: 3,
+      msgType: 'material',
+      msgContent: "材料「项目申报书」已被教师退回修改，修改意见：请补充项目的技术创新点详细描述，当前版本过于简略。",
+      isRead: 0,
+      createdAt: '2026-05-03T08:30:00',
+    },
+    {
+      msgId: 3,
+      projectId: 1,
+      receiverId: 3,
+      msgType: 'deadline',
+      msgContent: '项目「基于大模型的校园竞赛申报材料智能核验助手」截止日期为 2026-06-15，距离截止仅剩 3 天，请尽快完善材料。',
+      isRead: 1,
+      createdAt: '2026-06-12T10:00:00',
+    },
+    {
+      msgId: 4,
+      projectId: 1,
+      receiverId: 3,
+      msgType: 'system',
+      msgContent: '系统通知：2026年大学生创新创业训练计划项目申报已开放，请登录系统查看最新通知并进行项目申报。',
+      isRead: 1,
+      createdAt: '2026-04-10T09:00:00',
+    },
+    {
+      msgId: 5,
+      projectId: 2,
+      receiverId: 3,
+      msgType: 'material',
+      msgContent: "材料「路演答辩PPT」已被教师退回修改，修改意见：PPT页数过多（当前38页），建议精简至20页以内，突出核心技术方案。",
+      isRead: 0,
+      createdAt: '2026-06-15T14:20:00',
+    },
+    {
+      msgId: 6,
+      projectId: null,
+      receiverId: 3,
+      msgType: 'system',
+      msgContent: '欢迎使用校园竞赛申报材料智能核验系统！本系统将辅助您高效完成竞赛项目申报材料的准备与核验工作。',
+      isRead: 0,
+      createdAt: '2026-04-01T08:00:00',
+    },
+  ]
+}
+
+export function getNotifyMessages(userId, isRead) {
+  let messages = state.notifyMessages
+    .filter((m) => m.receiverId === userId)
+    .slice()
+
+  if (isRead !== undefined && isRead !== null) {
+    messages = messages.filter((m) => m.isRead === isRead)
+  }
+
+  messages.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+
+  return delayResponse(messages, '消息列表查询成功', 200)
+}
+
+export function getUnreadCount(userId) {
+  const count = state.notifyMessages.filter(
+    (m) => m.receiverId === userId && m.isRead === 0,
+  ).length
+  return delayResponse(count, '未读消息数查询成功', 100)
+}
+
+export function markMessageRead(msgId) {
+  const msg = state.notifyMessages.find((m) => m.msgId === msgId)
+  if (msg) {
+    msg.isRead = 1
+  }
+  return delayResponse(null, '消息已标记为已读', 120)
+}
+
+export function markAllMessagesRead(userId) {
+  state.notifyMessages
+    .filter((m) => m.receiverId === userId && m.isRead === 0)
+    .forEach((m) => { m.isRead = 1 })
+  return delayResponse(null, '全部消息已标记为已读', 150)
 }
 
 // ===== 新增：重置审核状态 =====

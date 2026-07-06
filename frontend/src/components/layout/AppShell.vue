@@ -1,7 +1,8 @@
 <script setup>
-import { PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
+import { computed } from 'vue'
+import { ChevronUp, PanelLeftClose, PanelLeftOpen } from 'lucide-vue-next'
 
-defineProps({
+const props = defineProps({
   collapsed: {
     type: Boolean,
     default: false,
@@ -18,9 +19,26 @@ defineProps({
     type: Array,
     default: () => [],
   },
+  unreadCount: {
+    type: Number,
+    default: 0,
+  },
+  currentUser: {
+    type: Object,
+    default: null,
+  },
 })
 
-defineEmits(['toggle-sidebar', 'select-menu'])
+const emit = defineEmits(['toggle-sidebar', 'select-menu', 'open-profile', 'logout'])
+
+const displayName = computed(() => {
+  return props.currentUser?.realName || props.currentUser?.username || '用户'
+})
+
+const userInitial = computed(() => {
+  const name = displayName.value
+  return name ? name.charAt(0).toUpperCase() : 'U'
+})
 </script>
 
 <template>
@@ -49,16 +67,47 @@ defineEmits(['toggle-sidebar', 'select-menu'])
           <span class="app-shell__nav-label" :class="{ 'app-shell__nav-label--hidden': collapsed }">
             {{ item.label }}
           </span>
+          <span
+            v-if="item.key === 'messages' && unreadCount > 0"
+            class="app-shell__nav-badge"
+            :class="{ 'app-shell__nav-badge--collapsed': collapsed }"
+          >
+            {{ unreadCount > 99 ? '99+' : unreadCount }}
+          </span>
         </button>
       </nav>
 
-      <div class="app-shell__status">
-        <div class="app-shell__status-dot" />
-        <div class="app-shell__status-copy" :class="{ 'app-shell__text-block--hidden': collapsed }">
-          <strong>系统在线</strong>
-          <span>数据与材料状态实时同步</span>
+      <!-- 用户区（替旧"系统在线"） -->
+      <div class="app-shell__user-spacer" />
+
+      <el-popover
+        placement="top"
+        :width="200"
+        trigger="click"
+        :offset="8"
+        popper-class="app-shell__user-popover"
+      >
+        <template #reference>
+          <div class="app-shell__user-area">
+            <div class="app-shell__user-avatar">{{ userInitial }}</div>
+            <div class="app-shell__user-copy" :class="{ 'app-shell__text-block--hidden': collapsed }">
+              <strong>{{ displayName }}</strong>
+              <span>{{ currentUser?.role === 'teacher' ? '教师' : currentUser?.role === 'admin' ? '管理员' : '学生' }}</span>
+            </div>
+            <ChevronUp
+              v-show="!collapsed"
+              :size="14"
+              :stroke-width="1.5"
+              class="app-shell__user-chevron"
+            />
+          </div>
+        </template>
+
+        <div class="app-shell__user-menu">
+          <button type="button" @click="$emit('open-profile')">个人信息</button>
+          <button type="button" @click="$emit('logout')">退出登录</button>
         </div>
-      </div>
+      </el-popover>
     </aside>
 
     <div class="app-shell__main">
@@ -79,13 +128,11 @@ defineEmits(['toggle-sidebar', 'select-menu'])
           </div>
         </div>
 
-        <div v-if="$slots['hero-actions']" class="app-shell__header-actions">
-          <slot name="hero-actions" />
-        </div>
+        <!-- 预留：右侧可放全局操作，当前为空 -->
       </header>
 
       <main class="app-shell__content">
-        <section class="app-shell__summary" aria-label="关键指标">
+        <section v-if="summaryItems.length" class="app-shell__summary" aria-label="关键指标">
           <div v-for="item in summaryItems" :key="item.label" class="app-shell__summary-card">
             <span>{{ item.label }}</span>
             <strong>{{ item.value }}</strong>
@@ -137,20 +184,20 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 }
 
 .app-shell__brand-mark {
-  flex: 0 0 40px;
+  flex: 0 0 44px;
   display: grid;
   place-items: center;
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 1px solid rgba(255, 255, 255, 0.12);
   border-radius: var(--app-radius-sm);
   color: #ffffff;
-  font-size: 15px;
+  font-size: 18px;
   font-weight: 700;
 }
 
 .app-shell__brand-copy,
-.app-shell__status-copy {
+.app-shell__user-copy {
   display: grid;
   gap: 3px;
   min-width: 0;
@@ -167,10 +214,10 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 }
 
 .app-shell__brand-copy strong,
-.app-shell__status-copy strong {
+.app-shell__user-copy strong {
   overflow: hidden;
   color: #f9fafb;
-  font-size: 14px;
+  font-size: 17px;
   font-weight: 600;
   line-height: 1.4;
   text-overflow: ellipsis;
@@ -178,10 +225,10 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 }
 
 .app-shell__brand-copy span,
-.app-shell__status-copy span {
+.app-shell__user-copy span {
   overflow: hidden;
   color: #9ca3af;
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -229,32 +276,108 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 .app-shell__nav-label {
   overflow: hidden;
   color: inherit;
-  font-size: 14px;
+  font-size: 16px;
   font-weight: 500;
   line-height: 1.4;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
-.app-shell__status {
+/* 消息 Badge */
+.app-shell__nav-badge {
+  margin-left: auto;
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: #ef4444;
+  color: #ffffff;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 22px;
+  text-align: center;
+}
+
+.app-shell__nav-badge--collapsed {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  margin-left: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  font-size: 10px;
+  line-height: 16px;
+}
+
+/* 用户区 */
+.app-shell__user-spacer {
+  flex: 1;
+  min-height: 0;
+}
+
+.app-shell__user-area {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-height: 64px;
-  margin-top: auto;
   padding: 12px;
   border: 1px solid rgba(255, 255, 255, 0.08);
   border-radius: var(--app-radius-sm);
+  cursor: pointer;
+  transition: background 0.15s;
 }
 
-.app-shell__status-dot {
-  flex: 0 0 8px;
-  width: 8px;
-  height: 8px;
+.app-shell__user-area:hover {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.app-shell__user-avatar {
+  flex: 0 0 36px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
   border-radius: 999px;
-  background: var(--app-success);
+  background: var(--app-primary);
+  color: #ffffff;
+  font-size: 15px;
+  font-weight: 700;
 }
 
+.app-shell__user-chevron {
+  flex: 0 0 auto;
+  color: #9ca3af;
+  margin-left: auto;
+  transition: transform 0.2s;
+}
+
+.app-shell__user-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+}
+
+.app-shell__user-menu button {
+  display: block;
+  width: 100%;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  text-align: left;
+  font-size: 17px;
+  color: #cbd5e1;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+
+.app-shell__user-menu button:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+}
+
+/* Main area */
 .app-shell__main {
   display: flex;
   flex-direction: column;
@@ -308,7 +431,7 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 .app-shell__title strong {
   overflow: hidden;
   color: var(--app-text-primary);
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 700;
   line-height: 1.25;
   text-overflow: ellipsis;
@@ -317,15 +440,8 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 
 .app-shell__title span {
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 14px;
   line-height: 1.4;
-}
-
-.app-shell__header-actions {
-  display: flex;
-  flex: 0 0 auto;
-  align-items: center;
-  gap: 8px;
 }
 
 .app-shell__content {
@@ -354,9 +470,9 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 
 .app-shell__summary-card span {
   color: var(--app-text-muted);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   line-height: 1.3;
   text-transform: uppercase;
 }
@@ -364,13 +480,14 @@ defineEmits(['toggle-sidebar', 'select-menu'])
 .app-shell__summary-card strong {
   overflow: hidden;
   color: var(--app-text-primary);
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
   line-height: 1.35;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+/* Responsive */
 @media (max-width: 1240px) {
   .app-shell,
   .app-shell--collapsed {
@@ -397,8 +514,16 @@ defineEmits(['toggle-sidebar', 'select-menu'])
     visibility: visible;
   }
 
-  .app-shell__status {
+  .app-shell__user-spacer {
     display: none;
+  }
+
+  .app-shell__nav-badge--collapsed {
+    position: static;
+    min-width: 20px;
+    height: 20px;
+    font-size: 11px;
+    line-height: 20px;
   }
 }
 
@@ -408,11 +533,6 @@ defineEmits(['toggle-sidebar', 'select-menu'])
     height: auto;
     min-height: 60px;
     padding-block: 12px;
-  }
-
-  .app-shell__header-actions {
-    flex-wrap: wrap;
-    justify-content: flex-end;
   }
 
   .app-shell__summary {
@@ -432,10 +552,20 @@ defineEmits(['toggle-sidebar', 'select-menu'])
   .app-shell__header {
     flex-direction: column;
   }
+}
+</style>
 
-  .app-shell__header-actions {
-    width: 100%;
-    justify-content: flex-start;
-  }
+<style lang="scss">
+/* 用户区 Popover — 非 scoped，因为 el-popover 渲染到 body */
+.app-shell__user-popover {
+  padding: 10px 6px !important;
+  background: #1e293b !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  border-radius: 8px !important;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
+}
+
+.app-shell__user-popover .el-popover__title {
+  color: #f9fafb;
 }
 </style>

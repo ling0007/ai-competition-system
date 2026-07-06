@@ -270,22 +270,24 @@ onMounted(() => {
             </template>
           </el-table-column>
           <el-table-column prop="phone" label="手机号" width="150" />
-          <el-table-column label="操作" width="180" align="center" fixed="right">
+          <el-table-column label="操作" width="220" align="center" fixed="right">
             <template #default="{ row }">
-              <el-button
-                type="primary"
-                size="default"
-                @click="openRoleDialog(row)"
-              >
-                编辑角色
-              </el-button>
-              <el-button
-                type="danger"
-                size="default"
-                @click="handleDeleteUser(row)"
-              >
-                删除
-              </el-button>
+              <div class="admin-table__actions">
+                <el-button
+                  type="primary"
+                  size="default"
+                  @click="openRoleDialog(row)"
+                >
+                  编辑角色
+                </el-button>
+                <el-button
+                  type="danger"
+                  size="default"
+                  @click="handleDeleteUser(row)"
+                >
+                  删除
+                </el-button>
+              </div>
             </template>
           </el-table-column>
         </el-table>
@@ -515,5 +517,12 @@ onMounted(() => {
   display: flex;
   justify-content: center;
   margin-top: 32px;
+}
+
+.admin-table__actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
 }
 </style>

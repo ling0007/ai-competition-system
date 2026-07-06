@@ -20,6 +20,7 @@ import com.eliza.aicompetition.mapper.ProjectMaterialMapper;
 import com.eliza.aicompetition.mapper.ProjectMemberMapper;
 import com.eliza.aicompetition.mapper.ReviewRecordMapper;
 import com.eliza.aicompetition.mapper.SysUserMapper;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -190,7 +191,16 @@ public class ProjectService {
         member.setUserId(request.getUserId());
         member.setMemberRole(request.getMemberRole());
         member.setJoinTime(LocalDateTime.now());
-        projectMemberMapper.insert(member);
+        try {
+            projectMemberMapper.insert(member);
+        } catch (DuplicateKeyException e) {
+            // User was previously a member but logically deleted — reactivate
+            int updated = projectMemberMapper.reactivateMember(
+                projectId, request.getUserId(), request.getMemberRole());
+            if (updated == 0) {
+                throw new BusinessException("该用户已是项目成员，不可重复添加");
+            }
+        }
     }
 
     @Transactional

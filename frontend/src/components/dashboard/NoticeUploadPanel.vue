@@ -24,7 +24,7 @@ const props = defineProps({
   },
 })
 
-const emit = defineEmits(['upload', 'parse'])
+const emit = defineEmits(['upload', 'parse', 'clear-notice'])
 
 const form = reactive({
   title: '',
@@ -93,6 +93,7 @@ function handleFileChange(file, uploadFiles) {
 function handleFileRemove() {
   fileList.value = []
   form.file = null
+  emit('clear-notice')
 }
 
 function submitNotice() {
@@ -242,24 +243,27 @@ function triggerParse() {
 <style scoped lang="scss">
 .notice-panel {
   display: grid;
-  gap: 24px;
+  grid-template-columns: 1fr 1fr;
+  gap: 32px;
+  align-items: start;
 }
 
 .notice-panel__grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0 16px;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
 }
 
 .notice-panel__actions {
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
+  margin-top: 8px;
 }
 
 .notice-panel__result {
   display: grid;
-  gap: 16px;
+  gap: 18px;
   padding: 24px;
   border: 1px solid var(--app-border);
   border-radius: var(--app-radius-sm);
@@ -278,27 +282,27 @@ function triggerParse() {
 .notice-panel__requirements span {
   margin: 0;
   color: var(--app-text-primary);
-  font-size: 11px;
+  font-size: 16px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
 }
 
 .notice-panel__result-head span {
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 16px;
 }
 
 .notice-panel__summary,
 .notice-panel__requirements {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 
 .notice-panel__summary p {
   margin: 0;
   color: var(--app-text-secondary);
-  font-size: 14px;
+  font-size: 19px;
   line-height: 1.8;
 }
 
@@ -310,12 +314,13 @@ function triggerParse() {
 
 .notice-panel__placeholder {
   color: var(--app-text-tertiary);
-  font-size: 13px;
+  font-size: 17px;
 }
 
-@media (max-width: 860px) {
-  .notice-panel__grid {
+@media (max-width: 900px) {
+  .notice-panel {
     grid-template-columns: 1fr;
+    gap: 24px;
   }
 
   .notice-panel__result-head {

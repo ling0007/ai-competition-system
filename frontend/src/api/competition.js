@@ -194,3 +194,53 @@ export function resetMaterialReview(materialId) {
 }
 
 export { useMockApi }
+
+// ===== 审计日志 =====
+
+export function getAgentTaskLogs(params = {}) {
+  if (useMockApi) {
+    return mockService.getAgentTaskLogs(params)
+  }
+
+  return apiClient.get('/agent/task-logs', { params }).then((response) => response.data)
+}
+
+// ===== 消息中心 =====
+
+export function getNotifyMessages(userId, isRead) {
+  if (useMockApi) {
+    return mockService.getNotifyMessages(userId, isRead)
+  }
+
+  return apiClient.get('/notify/messages', {
+    params: { receiverId: userId, isRead },
+  }).then((response) => response.data)
+}
+
+export function getUnreadCount(userId) {
+  if (useMockApi) {
+    return mockService.getUnreadCount(userId)
+  }
+
+  return apiClient.get('/notify/unread-count', {
+    params: { receiverId: userId },
+  }).then((response) => response.data)
+}
+
+export function markMessageRead(msgId) {
+  if (useMockApi) {
+    return mockService.markMessageRead(msgId)
+  }
+
+  return apiClient.put(`/notify/${msgId}/read`).then((response) => response.data)
+}
+
+export function markAllMessagesRead(userId) {
+  if (useMockApi) {
+    return mockService.markAllMessagesRead(userId)
+  }
+
+  return apiClient.put('/notify/read-all', null, {
+    params: { receiverId: userId },
+  }).then((response) => response.data)
+}

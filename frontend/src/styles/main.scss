@@ -53,6 +53,7 @@
 }
 
 html {
+  font-size: 16px;
   scroll-behavior: smooth;
 }
 
@@ -61,6 +62,7 @@ body {
   margin: 0;
   background: var(--app-bg);
   color: var(--app-text-primary);
+  font-size: 16px;
   font-family: Inter, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
@@ -116,8 +118,9 @@ svg {
 .el-input__wrapper,
 .el-select__wrapper,
 .el-date-editor.el-input__wrapper {
-  min-height: 36px;
+  min-height: 42px;
   border-radius: var(--app-radius-sm) !important;
+  font-size: 15px;
 }
 
 .el-input__wrapper.is-focus,
@@ -133,9 +136,10 @@ svg {
 }
 
 .el-button {
-  min-height: 36px;
+  min-height: 42px;
   border-radius: var(--app-radius-sm) !important;
   font-weight: 500;
+  font-size: 15px;
   transition:
     background-color var(--app-transition),
     border-color var(--app-transition),
@@ -170,7 +174,7 @@ svg {
 }
 
 .el-form-item {
-  margin-bottom: 18px;
+  margin-bottom: 20px;
 }
 
 .el-form-item__label,
@@ -182,14 +186,15 @@ svg {
 
 .el-form-item__label {
   color: var(--app-text-secondary);
+  font-size: 16px;
 }
 
 .el-tag {
-  height: 28px !important;
+  height: 32px !important;
   border-radius: 999px !important;
-  font-size: 12px !important;
+  font-size: 15px !important;
   font-weight: 500 !important;
-  padding-inline: 10px !important;
+  padding-inline: 12px !important;
 }
 
 .el-tag.el-tag--primary {
@@ -226,28 +231,28 @@ svg {
   border-radius: var(--app-radius-sm);
   overflow: hidden;
   color: var(--app-text-primary);
-  font-size: 14px;
+  font-size: 16px;
   box-shadow: none;
 }
 
 .el-table th.el-table__cell {
-  height: 40px;
+  height: 48px;
   padding: 0;
   color: var(--app-text-secondary);
-  font-size: 11px;
-  letter-spacing: 0.06em;
+  font-size: 13px;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .el-table td.el-table__cell {
-  height: 52px;
+  height: 56px;
   padding: 0;
   color: var(--app-text-primary);
 }
 
 .el-table .cell {
-  padding: 12px 16px;
-  line-height: 1.45;
+  padding: 14px 18px;
+  line-height: 1.5;
 }
 
 .el-table .el-table__cell {
@@ -314,16 +319,23 @@ svg {
 .el-upload__tip,
 .el-form-item__error {
   color: var(--el-color-danger) !important;
-  font-size: 12px;
+  font-size: 14px;
 }
 
 .el-descriptions {
   --el-descriptions-table-border: 1px solid var(--app-border);
+  font-size: 16px;
 }
 
 .el-descriptions__label {
   color: var(--app-text-secondary);
   background: #f9fafb !important;
+  font-size: 15px;
+}
+
+.el-input__inner,
+.el-textarea__inner {
+  font-size: 15px;
 }
 
 .fade-slide-enter-active,

@@ -72,7 +72,8 @@ public class AiService {
             log.info("LLM parseNotice raw response (first 500 chars): {}",
                 response.length() > 500 ? response.substring(0, 500) + "..." : response);
             AiParseResult result = objectMapper.readValue(cleanJson(response), AiParseResult.class);
-            log.info("LLM parseNotice parsed: organizer={}, materials={}, keyPoints={}",
+            log.info("LLM parseNotice parsed: title={}, organizer={}, materials={}, keyPoints={}",
+                result.title(),
                 result.organizer(),
                 result.materials() != null ? result.materials().size() : 0,
                 result.keyPoints() != null ? result.keyPoints().length() : 0);
@@ -163,11 +164,12 @@ public class AiService {
             你是一个竞赛通知解析器。请从以下通知文本中提取结构化信息。
 
             需要提取的字段：
-            1. organizer：主办单位名称。如果文本中提到了某个学校、学院或机构作为主办方，提取它。
-            2. deadline：申报截止日期。格式必须是 yyyy-MM-dd HH:mm。从文本中查找日期和时间信息。
-            3. targetGroup：面向的参赛对象，如"本科生"、"研究生"、"教师"等。
-            4. keyPoints：用中文简要概括通知的核心内容（100字以内）。
-            5. materials：申报需要提交的材料清单。每项材料必须包含：
+            1. title：通知的完整标题。从文本中提取最准确、完整的通知名称。
+            2. organizer：主办单位名称。如果文本中提到了某个学校、学院或机构作为主办方，提取它。
+            3. deadline：申报截止日期。格式必须是 yyyy-MM-dd HH:mm。从文本中查找日期和时间信息。
+            4. targetGroup：面向的参赛对象，如"本科生"、"研究生"、"教师"等。
+            5. keyPoints：用中文简要概括通知的核心内容（100字以内）。
+            6. materials：申报需要提交的材料清单。每项材料必须包含：
                - name：材料名称（中文）
                - description：对该材料的简要说明
                - isRequired：是否必须提交（true/false）
@@ -175,7 +177,7 @@ public class AiService {
             注意：如果某个字段在文本中确实找不到对应信息，设为 null，不要编造。
 
             返回格式：纯 JSON（不要加 ```json``` 标记），例如：
-            {"organizer":"某某大学","deadline":"2026-06-15 23:59","targetGroup":"本科生","keyPoints":"...","materials":[{"name":"申报书","description":"...","isRequired":true}]}
+            {"title":"关于举办2026年大学生创新创业大赛的通知","organizer":"某某大学","deadline":"2026-06-15 23:59","targetGroup":"本科生","keyPoints":"...","materials":[{"name":"申报书","description":"...","isRequired":true}]}
 
             通知文本：
             ----------
@@ -243,6 +245,7 @@ public class AiService {
 
     private AiParseResult fallbackParseNotice() {
         return new AiParseResult(
+            null,
             null, null, null,
             "AI解析暂时不可用，请稍后重试。当前使用默认配置。",
             Collections.emptyList()

@@ -9,6 +9,7 @@ import java.util.List;
  * Jackson deserializes the LLM JSON response into this record.
  */
 public record AiParseResult(
+    @JsonProperty("title") String title,
     @JsonProperty("organizer") String organizer,
     @JsonProperty("deadline") String deadline,
     @JsonProperty("targetGroup") String targetGroup,

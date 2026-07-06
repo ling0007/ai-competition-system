@@ -2,19 +2,23 @@
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import {
+  Bell,
   ClipboardCheck,
   FileText,
   Files,
   LayoutDashboard,
   School,
+  ScrollText,
 } from 'lucide-vue-next'
 import AdminDashboard from '@/components/admin/AdminDashboard.vue'
 import AppShell from '@/components/layout/AppShell.vue'
 import LoginPage from '@/components/auth/LoginPage.vue'
 import RegisterPage from '@/components/auth/RegisterPage.vue'
 import UserProfileDialog from '@/components/user/UserProfileDialog.vue'
+import AgentTaskLogPanel from '@/components/dashboard/AgentTaskLogPanel.vue'
 import MaterialCheckPanel from '@/components/dashboard/MaterialCheckPanel.vue'
 import MaterialReviewPanel from '@/components/dashboard/MaterialReviewPanel.vue'
+import MessageCenterPanel from '@/components/dashboard/MessageCenterPanel.vue'
 import NoticeUploadPanel from '@/components/dashboard/NoticeUploadPanel.vue'
 import ProjectCreatePanel from '@/components/dashboard/ProjectCreatePanel.vue'
 import TeacherDashboard from '@/components/dashboard/TeacherDashboard.vue'
@@ -24,9 +28,10 @@ import {
   addProjectMember,
   createProject,
   getDashboardBootstrap,
+  getMyProjects,
   getProjectDetail,
   getProjectProgress,
-  getMyProjects,
+  getUnreadCount,
   parseNotice,
   removeProjectMember,
   runMaterialCheck,
@@ -51,6 +56,10 @@ const overviewSection = ref(null)
 const noticeSection = ref(null)
 const projectSection = ref(null)
 const materialSection = ref(null)
+const messagesSection = ref(null)
+const logsSection = ref(null)
+const messageCenterRef = ref(null)
+const agentTaskLogRef = ref(null)
 
 let sectionObserver = null
 
@@ -64,6 +73,7 @@ const fileViewerFileName = ref('')
 const isTeacher = computed(() => currentUser.value?.role === 'teacher')
 const isAdmin = computed(() => currentUser.value?.role === 'admin')
 const profileDialogVisible = ref(false)
+const unreadCount = ref(0)
 
 const loading = reactive({
   bootstrap: false,
@@ -81,6 +91,8 @@ const studentMenuItems = [
   { key: 'notice', label: '通知解析', icon: FileText },
   { key: 'project', label: '项目申报', icon: Files },
   { key: 'material', label: '材料检查', icon: ClipboardCheck },
+  { key: 'messages', label: '消息中心', icon: Bell },
+  { key: 'logs', label: '审计日志', icon: ScrollText },
 ]
 
 const teacherMenuItems = [
@@ -88,6 +100,8 @@ const teacherMenuItems = [
   { key: 'notice', label: '通知解析', icon: FileText },
   { key: 'project', label: '项目申报', icon: Files },
   { key: 'material', label: '材料审核', icon: ClipboardCheck },
+  { key: 'messages', label: '消息中心', icon: Bell },
+  { key: 'logs', label: '审计日志', icon: ScrollText },
 ]
 
 const menuItems = computed(() =>
@@ -125,6 +139,8 @@ function getSectionElements() {
     notice: noticeSection.value,
     project: projectSection.value,
     material: materialSection.value,
+    messages: messagesSection.value,
+    logs: logsSection.value,
   }
 }
 
@@ -264,6 +280,8 @@ async function handleNoticeParse(noticeId) {
       ...response.data,
     }
     upsertNoticeOption(currentNotice.value)
+    // 解析会创建 AgentTaskLog 记录，刷新审计日志面板
+    agentTaskLogRef.value?.refresh()
     ElMessage.success('通知解析完成')
   } catch (error) {
     ElMessage.error(resolveErrorMessage(error, '通知解析失败'))
@@ -334,6 +352,9 @@ async function handleRunMaterialCheck() {
     const response = await runMaterialCheck(currentProjectDetail.value.projectId)
     lastCheckResult.value = response.data
     await refreshProjectState(currentProjectDetail.value.projectId)
+    // 核验会创建 NotifyMessage 和 AgentTaskLog 记录，刷新相关面板
+    messageCenterRef.value?.refresh()
+    agentTaskLogRef.value?.refresh()
     ElMessage.success('核验完成')
     scrollToSection('material')
   } catch (error) {
@@ -419,6 +440,20 @@ function decodeTokenPayload(token) {
   }
 }
 
+async function loadUnreadCount() {
+  if (!currentUser.value?.userId) return
+  try {
+    const response = await getUnreadCount(currentUser.value.userId)
+    unreadCount.value = response.data ?? 0
+  } catch {
+    // Silently fail — unread count is non-critical
+  }
+}
+
+function handleMessagesRead() {
+  loadUnreadCount()
+}
+
 function enterDashboard(userData) {
   if (!userData?.token) {
     ElMessage.error('登录数据异常，请重试')
@@ -438,6 +473,7 @@ function enterDashboard(userData) {
   }
   nextTick(async () => {
     await loadDashboardBootstrap()
+    await loadUnreadCount()
     await nextTick()
     initSectionObserver()
   })
@@ -474,6 +510,7 @@ onMounted(async () => {
       currentView.value = 'dashboard'
       if (payload.role !== 'admin') {
         await loadDashboardBootstrap()
+        await loadUnreadCount()
         await nextTick()
         initSectionObserver()
       }
@@ -509,19 +546,13 @@ onBeforeUnmount(() => {
     :active-menu="activeMenu"
     :menu-items="menuItems"
     :summary-items="shellSummary"
+    :unread-count="unreadCount"
+    :current-user="currentUser"
     @toggle-sidebar="sidebarCollapsed = !sidebarCollapsed"
     @select-menu="scrollToSection"
+    @open-profile="profileDialogVisible = true"
+    @logout="handleLogout"
   >
-    <template #hero-actions>
-      <span class="app-shell__user-info">{{ currentUser?.realName || currentUser?.username }}</span>
-      <el-button class="app-button--secondary" @click="profileDialogVisible = true">个人信息</el-button>
-      <el-button v-if="isTeacher" type="primary" @click="scrollToSection('overview')">我的项目</el-button>
-      <el-button v-else type="primary" @click="scrollToSection('project')">新建项目</el-button>
-      <el-button class="app-button--secondary" @click="scrollToSection('notice')">上传通知</el-button>
-      <el-button v-if="isTeacher" class="app-button--secondary" @click="scrollToSection('material')">材料审核</el-button>
-      <el-button v-else class="app-button--secondary" @click="scrollToSection('material')">查看材料清单</el-button>
-      <el-button class="app-button--outline" @click="handleLogout">退出登录</el-button>
-    </template>
 
     <!-- 教师 overview: 项目列表 -->
     <section v-if="isTeacher" ref="overviewSection" class="dashboard-anchor dashboard-anchor--overview">
@@ -534,12 +565,6 @@ onBeforeUnmount(() => {
 
     <!-- 学生 overview: 项目总览卡片 -->
     <section v-else ref="overviewSection" class="dashboard-anchor dashboard-anchor--overview">
-      <div class="dashboard-actions">
-        <el-button type="primary" @click="scrollToSection('project')">新建项目</el-button>
-        <el-button class="app-button--secondary" @click="scrollToSection('notice')">上传通知</el-button>
-        <el-button class="app-button--secondary" @click="scrollToSection('material')">查看材料清单</el-button>
-      </div>
-
       <div class="dashboard-hero">
         <div class="dashboard-hero__project-card">
           <div class="dashboard-hero__project-head">
@@ -622,6 +647,7 @@ onBeforeUnmount(() => {
           :bootstrapping="loading.bootstrap"
           @upload="handleNoticeUpload"
           @parse="handleNoticeParse"
+          @clear-notice="currentNotice = null"
         />
       </section>
 
@@ -664,6 +690,20 @@ onBeforeUnmount(() => {
           @view-file="openFileViewer"
         />
       </section>
+
+      <!-- 消息中心 -->
+      <section ref="messagesSection" class="dashboard-anchor dashboard-grid__messages">
+        <MessageCenterPanel
+          ref="messageCenterRef"
+          :current-user="currentUser"
+          @messages-read="handleMessagesRead"
+        />
+      </section>
+
+      <!-- 审计日志 -->
+      <section ref="logsSection" class="dashboard-anchor dashboard-grid__logs">
+        <AgentTaskLogPanel ref="agentTaskLogRef" :current-user="currentUser" />
+      </section>
     </div>
   </AppShell>
 
@@ -687,7 +727,7 @@ onBeforeUnmount(() => {
   display: inline-flex;
   align-items: center;
   padding: 0 4px;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 500;
   color: var(--app-text-primary, #374151);
   white-space: nowrap;
@@ -735,9 +775,9 @@ onBeforeUnmount(() => {
   display: block;
   margin-bottom: 6px;
   color: var(--app-text-muted);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   line-height: 1.3;
   text-transform: uppercase;
 }
@@ -745,7 +785,7 @@ onBeforeUnmount(() => {
 .dashboard-hero__project-head strong,
 .dashboard-hero__project-grid strong {
   color: var(--app-text-primary);
-  font-size: 16px;
+  font-size: 20px;
   font-weight: 600;
   line-height: 1.45;
 }
@@ -791,15 +831,15 @@ onBeforeUnmount(() => {
 
 .dashboard-hero__materials-head span {
   color: var(--app-text-muted);
-  font-size: 11px;
+  font-size: 14px;
   font-weight: 700;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
 }
 
 .dashboard-hero__materials-head strong {
   color: var(--app-text-primary);
-  font-size: 20px;
+  font-size: 26px;
   font-weight: 700;
 }
 
@@ -812,13 +852,13 @@ onBeforeUnmount(() => {
 .dashboard-hero__materials-item {
   display: inline-flex;
   align-items: center;
-  min-height: 28px;
-  padding: 0 10px;
+  min-height: 32px;
+  padding: 0 12px;
   border-radius: 999px;
   border: 1px solid transparent;
   background: var(--app-info-bg);
   color: var(--app-info);
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 500;
   line-height: 1.2;
 }
@@ -832,27 +872,13 @@ onBeforeUnmount(() => {
 .dashboard-hero__materials-empty {
   margin: 0;
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 15px;
 }
 
 .dashboard-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 24px;
-}
-
-.dashboard-grid__material {
-  grid-column: 1 / -1;
-}
-
-@media (max-width: 1280px) {
-  .dashboard-grid {
-    grid-template-columns: 1fr;
-  }
-
-  .dashboard-grid__material {
-    grid-column: auto;
-  }
+  grid-template-columns: minmax(0, 1fr);
+  gap: 32px;
 }
 
 @media (max-width: 960px) {
@@ -872,4 +898,5 @@ onBeforeUnmount(() => {
     width: 100%;
   }
 }
+
 </style>

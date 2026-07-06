@@ -1,4 +1,7 @@
-# CLAUDE.md
+# CLAUDE.md — 后端开发指南
+
+> **⚠️ 开发规范与约束请参见项目根目录的 `CLAUDE.md`（`E:\aicompetition\CLAUDE.md`）。**
+> 本文件仅包含后端特有的构建/运行/架构说明。
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 always use Chinese for all communication.

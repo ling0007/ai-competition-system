@@ -1,10 +1,12 @@
 package com.eliza.aicompetition.service;
 
 import com.eliza.aicompetition.common.FileTextExtractor;
+import com.eliza.aicompetition.dto.agent.AgentTaskLogResponse;
 import com.eliza.aicompetition.dto.agent.MaterialCheckResponse;
 import com.eliza.aicompetition.dto.ai.AiCheckResult;
 import com.eliza.aicompetition.dto.project.ProjectMaterialView;
 import com.eliza.aicompetition.dto.project.ProjectProgressResponse;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.eliza.aicompetition.entity.AgentTaskLog;
 import com.eliza.aicompetition.entity.CompetitionProject;
 import com.eliza.aicompetition.entity.FileAsset;
@@ -20,6 +22,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class AgentService {
@@ -156,5 +159,31 @@ public class AgentService {
             progress.getCompletionRate(),
             progress.getMissingMaterials()
         );
+    }
+
+    public List<AgentTaskLogResponse> listTaskLogs(Long projectId, String toolName) {
+        LambdaQueryWrapper<AgentTaskLog> queryWrapper = new LambdaQueryWrapper<>();
+        if (projectId != null) {
+            queryWrapper.eq(AgentTaskLog::getProjectId, projectId);
+        }
+        if (toolName != null && !toolName.isBlank()) {
+            queryWrapper.eq(AgentTaskLog::getToolName, toolName);
+        }
+        queryWrapper.orderByDesc(AgentTaskLog::getCreatedAt);
+
+        List<AgentTaskLog> logs = agentTaskLogMapper.selectList(queryWrapper);
+        return logs.stream()
+            .map(log -> new AgentTaskLogResponse(
+                log.getTaskId(),
+                log.getProjectId(),
+                log.getToolName(),
+                log.getInputSummary(),
+                log.getResultSummary() != null && log.getResultSummary().length() > 200
+                    ? log.getResultSummary().substring(0, 200) + "..."
+                    : log.getResultSummary(),
+                log.getExecuteStatus(),
+                log.getCreatedAt()
+            ))
+            .collect(Collectors.toList());
     }
 }

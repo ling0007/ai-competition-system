@@ -52,15 +52,15 @@ defineProps({
 .feature-panel__header h2 {
   margin: 0;
   color: var(--app-text-primary);
-  font-size: 20px;
+  font-size: 28px;
   font-weight: 700;
   line-height: 1.35;
 }
 
 .feature-panel__header p {
-  margin: 8px 0 0;
+  margin: 10px 0 0;
   color: var(--app-text-muted);
-  font-size: 12px;
+  font-size: 16px;
   line-height: 1.6;
 }
 

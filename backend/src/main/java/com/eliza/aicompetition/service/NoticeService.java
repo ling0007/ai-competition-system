@@ -141,7 +141,11 @@ public class NoticeService {
         // 3. Call LLM to parse the notice (text truncated to 4000 chars inside AiService)
         AiParseResult parseResult = aiService.parseNotice(fullText);
 
-        // 4. Sync LLM-extracted fields back to the notice entity (only if user didn't manually set them)
+        // 4. Sync LLM-extracted fields back to the notice entity
+        //    Always update title from AI — it comes from actual document content, more accurate than filename
+        if (parseResult.title() != null) {
+            notice.setTitle(parseResult.title());
+        }
         if (!StringUtils.hasText(notice.getOrganizer()) && parseResult.organizer() != null) {
             notice.setOrganizer(parseResult.organizer());
         }

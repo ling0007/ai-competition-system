@@ -31,24 +31,25 @@ AI 只生成解析草稿和初审意见；通知发布、材料退回与审核�
 - **可解释的 AI Eval**：三份带文件 SHA-256 和原文证据的 gold 样本，经确定性规则评分字段、材料 precision/recall 和必交标记；`FALLBACK` 不进入模型质量分母。同一 10 页扫描样本从前 3 页基线改为 10/10 页 OCR 后，材料 TP/FP/FN 从 `0/2/3` 到 `3/1/0`（precision `0.75`、recall `1.00`）。这是参与过 Prompt 调整的**已知样本单次组件级回归**，不能代表未知通知的泛化准确率或生产 SLA。评测口径与复现方式见 [`docs/testdata/eval/`](docs/testdata/eval/README.md)。
 - **AI 协作与工程知识沉淀**：仓库使用 [`AGENTS.md`](AGENTS.md) 约束 AI 编程流程，并通过 [`docs/knowledge/`](docs/knowledge/index.md) 保存经过代码和测试复核、可跨任务复用的工程判断。知识不是代码事实的替代品；重要结论仍需回到当前实现验证。
 
-## Docker Compose 本地启动
+## Docker Compose 本地复现
 
-需要 Docker Engine/Desktop 与 Compose v2；首次构建需要访问镜像和 Maven/npm 依赖源。
+准备 Docker Engine/Desktop 与 Compose v2。首次构建需要下载 MySQL、Redis、Maven 和 npm 依赖。
 
 ```bash
 git clone https://github.com/ling0007/ai-competition-system.git
 cd ai-competition-system
 cp .env.example .env
 # 编辑 .env：更换 DB_PASSWORD、MYSQL_ROOT_PASSWORD、REDIS_PASSWORD、JWT_SECRET
+docker compose config
 docker compose up -d --build
 docker compose ps
 ```
 
-PowerShell 复制配置使用 `Copy-Item .env.example .env`。浏览器访问 `http://localhost:8080`，健康接口为 `http://localhost:8080/health`。Compose 启动 MySQL、Redis 和前后端一体化应用；Flyway 从空库执行迁移。`DASHSCOPE_API_KEY` 可留空，此时普通业务可用，AI 任务给出明确的降级结果；真实 AI 调用需自行配置有效 Key。停止使用 `docker compose down`；`docker compose down -v` 会删除本地 MySQL 卷。
+PowerShell 使用 `Copy-Item .env.example .env` 复制配置。`docker compose config` 会先检查必填变量和最终配置；启动后可用 `docker compose logs -f app` 查看应用日志。
 
-V1 migration 含演示用户数据；此配置面向本地复现，公开部署前须处理演示账号的初始化与凭据轮换。
+浏览器访问 `http://localhost:8080`，健康检查地址为 `http://localhost:8080/health`。Compose 会启动 MySQL、Redis 和前后端一体化应用，Flyway 在首次启动时自动初始化数据库。`DASHSCOPE_API_KEY` 可留空，此时普通业务仍可运行，AI 任务会返回明确的降级结果；如需体验真实 AI 调用，再填写有效 Key。
 
-已验证空库迁移至 V13、Redis 健康检查、应用健康接口、注册/JWT 接口与无 Key 降级；当前环境的**完整应用镜像构建曾受基础镜像拉取 TLS 超时阻断**，因此 Compose 全栈镜像仍需在网络正常的环境复验。
+使用 `docker compose down` 停止服务并保留数据。`docker compose down -v` 会同时删除本地 MySQL 数据卷，仅在需要重新初始化演示环境时使用。
 
 ## 代码与证据入口
 

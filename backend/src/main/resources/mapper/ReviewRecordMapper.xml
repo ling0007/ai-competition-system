@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.ReviewRecordMapper">
+
+    <select id="findReviewViewsByProjectId" resultType="com.eliza.aicompetition.dto.project.ReviewRecordView">
+        SELECT
+            rr.review_id,
+            rr.review_type,
+            rr.review_result,
+            rr.review_comment,
+            su.real_name AS reviewer_name,
+            rr.created_at
+        FROM review_record rr
+        LEFT JOIN sys_user su
+          ON su.user_id = rr.reviewer_id
+         AND su.is_deleted = 0
+        WHERE rr.project_id = #{projectId}
+          AND rr.is_deleted = 0
+        ORDER BY rr.created_at DESC, rr.review_id DESC
+    </select>
+
+    <select id="findMyReviewHistory" resultType="com.eliza.aicompetition.dto.project.TeacherReviewHistoryView">
+        SELECT history.review_id, history.project_id, cp.project_name,
+               history.requirement_name, history.version_no, history.decision,
+               history.comment, su.real_name AS reviewer_name, history.created_at,
+               history.review_type
+        FROM (
+            SELECT mr.id AS review_id, pm.project_id, req.requirement_name,
+                   pm.version_no, mr.decision, mr.comment, mr.reviewer_id,
+                   mr.created_at, 'material' AS review_type
+            FROM material_review mr
+            JOIN project_material pm ON pm.material_id = mr.material_version_id AND pm.is_deleted = 0
+            JOIN material_requirement req ON req.requirement_id = pm.requirement_id AND req.is_deleted = 0
+            WHERE mr.reviewer_id = #{reviewerId} AND mr.is_deleted = 0
+            UNION ALL
+            SELECT rr.review_id, rr.project_id, NULL AS requirement_name,
+                   NULL AS version_no, rr.review_result AS decision,
+                   rr.review_comment AS comment, rr.reviewer_id, rr.created_at,
+                   'project' AS review_type
+            FROM review_record rr
+            WHERE rr.reviewer_id = #{reviewerId} AND rr.review_type = 'teacher_project'
+              AND rr.is_deleted = 0
+        ) history
+        JOIN competition_project cp ON cp.project_id = history.project_id AND cp.is_deleted = 0
+        JOIN sys_user su ON su.user_id = history.reviewer_id AND su.is_deleted = 0
+        WHERE (#{admin} = TRUE OR EXISTS (
+            SELECT 1 FROM project_member advisor
+            WHERE advisor.project_id = history.project_id AND advisor.user_id = #{reviewerId}
+              AND advisor.member_role = 'advisor' AND advisor.is_deleted = 0
+        ))
+        ORDER BY history.created_at DESC, history.review_type DESC, history.review_id DESC
+    </select>
+
+</mapper>

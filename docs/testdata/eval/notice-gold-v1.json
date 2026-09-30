@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "expectedVersion": "notice-gold-v1",
+  "samples": [
+    {
+      "id": "campus-txt",
+      "sampleVersion": "sha256:4dd6913ff25c",
+      "path": "docs/testdata/manual-ai-notice.txt",
+      "sha256": "4dd6913ff25cf6d071a162712d14257e4e849470acd151ea41b1d7d2565db40e",
+      "kind": "TXT",
+      "pages": 1,
+      "evaluatedScope": "全文中的初次申报材料",
+      "expected": {
+        "title": {"value": "关于开展2027年校园创新项目申报的通知", "aliases": [], "evidence": "第1段标题"},
+        "organizer": {"value": "校园创新实践中心", "aliases": [], "evidence": "主办单位段"},
+        "deadline": {"value": "2027-06-30 18:00", "evidence": "申报截止时间段"},
+        "materials": [
+          {"name": "项目申报书", "aliases": [], "isRequired": true, "evidence": "必交材料第1项"},
+          {"name": "指导教师意见表", "aliases": [], "isRequired": true, "evidence": "必交材料第2项"}
+        ]
+      },
+      "uncertainFields": []
+    },
+    {
+      "id": "cimc-text-pdf",
+      "sampleVersion": "sha256:3006e0cc9998",
+      "path": "docs/testdata/文字版pdfCIMC华东二赛区.pdf",
+      "sha256": "3006e0cc9998bf301f990f8772b50a49e98fd89b0b3176cee7af83d0c0fc30e3",
+      "kind": "TEXT_PDF",
+      "pages": 4,
+      "evaluatedScope": "报名回执与报到现场明确要求提交或出示的资料；不计赛务用品及条件性发票",
+      "expected": {
+        "title": {"value": "教育部2023年第十七届CIMC“西门子杯”中国智能制造挑战赛全国初赛华东二赛区（工程实践赛项）竞赛通知", "aliases": [], "evidence": "PDF第1页标题"},
+        "organizer": {"value": null, "aliases": [], "evidence": "全文未明确标注主办单位；第4页落款常熟理工学院不能直接等同主办方"},
+        "deadline": {"value": "2023-07-10 23:59", "evidence": "PDF第1页注意③：7月10日前填写附件1；年份见第1页标题2023年，原文未给具体时分，按解析Prompt的纯日期23:59规则"},
+        "materials": [
+          {"name": "华东二赛区参赛回执单", "aliases": ["参赛回执单"], "isRequired": true, "evidence": "PDF第1页注意③、 第4页附件1"},
+          {"name": "个人信息条码", "aliases": [], "isRequired": true, "evidence": "PDF第1页报到处登记①；第2页说明"},
+          {"name": "学生证", "aliases": [], "isRequired": true, "evidence": "PDF第1页报到处登记②；第2页说明"},
+          {"name": "保险单", "aliases": [], "isRequired": true, "evidence": "PDF第1页报到处登记③；第2页说明"},
+          {"name": "免责声明", "aliases": ["《免责声明》"], "isRequired": true, "evidence": "PDF第1页报到处登记④；第2页说明"},
+          {"name": "法律声明", "aliases": ["《法律声明》"], "isRequired": true, "evidence": "PDF第1页报到处登记⑤；第2页说明"},
+          {"name": "报名表", "aliases": [], "isRequired": true, "evidence": "PDF第1页报到处登记⑥；第2页说明"}
+        ]
+      },
+      "uncertainFields": [
+        {"field": "organizer", "reason": "文件未写明主办单位；落款仅说明本赛区通知发布方"},
+        {"field": "invoice", "reason": "普通发票只适用于需缴费赛项，非所有报名队伍必交"}
+      ]
+    },
+    {
+      "id": "software-contest-scanned-pdf",
+      "sampleVersion": "sha256:4732d5b0d795",
+      "path": "docs/testdata/关于举办第十九届全国大学生软件创新大赛的参赛通知.pdf",
+      "sha256": "4732d5b0d7955e89dffd9b5dc9226b01edb021103d3329218c25cade2e68d282",
+      "kind": "SCANNED_PDF",
+      "pages": 10,
+      "baselineOcrPages": 3,
+      "evaluatedScope": "报名与区域赛初赛提交材料；复赛/决赛的必交属性另随赛段变化，不压成同一个布尔值",
+      "expected": {
+        "title": {"value": "关于举办第十九届全国大学生软件创新大赛“软件定义世界，创新引领未来”参赛通知", "aliases": [], "evidence": "PDF第1页标题"},
+        "organizer": {"value": "示范性软件学院联盟", "aliases": [], "evidence": "PDF第1页三.大赛组织2.主办单位"},
+        "deadline": {"value": "2026-02-02 18:00", "evidence": "PDF第5页六.报名1.报名时间；第6页七.比赛程序重复确认"},
+        "materials": [
+          {"name": "项目计划书", "aliases": [], "isRequired": true, "evidence": "PDF第7页七.2.1区域赛初赛必须提交材料"},
+          {"name": "Beta版程序", "aliases": ["Beta版程序（可运行程序+源代码）"], "isRequired": false, "evidence": "PDF第7页七.2.1区域赛初赛可选提交材料"},
+          {"name": "作品展示和介绍视频", "aliases": [], "isRequired": false, "evidence": "PDF第7页七.2.1区域赛初赛可选提交材料"}
+        ]
+      },
+      "uncertainFields": [
+        {"field": "laterStageMaterials", "reason": "第7页复赛/决赛和全国赛另列必交资料；生产DTO没有赛段字段，本版gold仅评区域赛初赛"}
+      ]
+    }
+  ]
+}

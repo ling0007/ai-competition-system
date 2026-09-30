@@ -1,0 +1,105 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.ProjectMemberMapper">
+
+    <select id="findMemberViewsByProjectId" resultType="com.eliza.aicompetition.dto.project.ProjectMemberView">
+        SELECT
+            pm.member_id,
+            pm.user_id,
+            su.real_name,
+            pm.member_role
+        FROM project_member pm
+        JOIN sys_user su
+          ON su.user_id = pm.user_id
+         AND su.is_deleted = 0
+        WHERE pm.project_id = #{projectId}
+          AND pm.is_deleted = 0
+        ORDER BY CASE pm.member_role
+                     WHEN 'leader' THEN 1
+                     WHEN 'advisor' THEN 2
+                     ELSE 3
+                 END,
+                 pm.member_id ASC
+    </select>
+
+    <select id="findProjectIdsByUserId" resultType="java.lang.Long">
+        SELECT pm.project_id
+        FROM project_member pm
+        WHERE pm.user_id = #{userId}
+          AND pm.is_deleted = 0
+        <if test="memberRole != null and memberRole != ''">
+          AND pm.member_role = #{memberRole}
+        </if>
+        ORDER BY pm.project_id DESC
+    </select>
+
+    <select id="findProjectListByUserId" resultType="com.eliza.aicompetition.dto.project.ProjectListView">
+        SELECT
+            cp.project_id,
+            cp.project_name,
+            cp.team_name,
+            cp.status,
+            cp.completion_rate,
+            cp.deadline,
+            leader.real_name AS leader_name,
+            cn.title AS notice_title
+        FROM project_member pm
+        JOIN competition_project cp
+          ON cp.project_id = pm.project_id
+         AND cp.is_deleted = 0
+        JOIN sys_user leader
+          ON leader.user_id = cp.leader_id
+         AND leader.is_deleted = 0
+        JOIN competition_notice cn
+          ON cn.notice_id = cp.notice_id
+         AND cn.is_deleted = 0
+        WHERE pm.user_id = #{userId}
+          AND pm.is_deleted = 0
+        <if test="memberRole != null and memberRole != ''">
+          AND pm.member_role = #{memberRole}
+        </if>
+        ORDER BY cp.project_id DESC
+    </select>
+
+    <!-- P1-4: 分页查询用户项目列表，支持关键字和状态筛选 -->
+    <select id="findProjectListByUserIdPage" resultType="com.eliza.aicompetition.dto.project.ProjectListView">
+        SELECT DISTINCT
+            cp.project_id,
+            cp.project_name,
+            cp.team_name,
+            cp.status,
+            cp.completion_rate,
+            cp.deadline,
+            leader.real_name AS leader_name,
+            cn.title AS notice_title
+        FROM project_member pm
+        JOIN competition_project cp
+          ON cp.project_id = pm.project_id
+         AND cp.is_deleted = 0
+        JOIN sys_user leader
+          ON leader.user_id = cp.leader_id
+         AND leader.is_deleted = 0
+        JOIN competition_notice cn
+          ON cn.notice_id = cp.notice_id
+         AND cn.is_deleted = 0
+        WHERE pm.user_id = #{userId}
+          AND pm.is_deleted = 0
+        <if test="memberRole != null and memberRole != ''">
+          AND pm.member_role = #{memberRole}
+        </if>
+        <if test="keyword != null and keyword != ''">
+          AND (cp.project_name LIKE CONCAT('%', #{keyword}, '%')
+               OR cn.title LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+          AND cp.status = #{status}
+        </if>
+        <if test="deadlineBefore != null">
+          AND cp.deadline &lt;= #{deadlineBefore}
+        </if>
+        ORDER BY cp.project_id DESC
+    </select>
+
+</mapper>

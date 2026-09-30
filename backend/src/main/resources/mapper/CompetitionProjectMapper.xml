@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.CompetitionProjectMapper">
+
+    <!-- 管理员全量项目分页查询，支持关键字/状态/通知筛选 -->
+    <select id="findAllProjectsPage" resultType="com.eliza.aicompetition.dto.project.ProjectListView">
+        SELECT DISTINCT
+            cp.project_id,
+            cp.project_name,
+            cp.team_name,
+            cp.status,
+            cp.completion_rate,
+            cp.deadline,
+            cp.created_at,
+            leader.real_name AS leader_name,
+            cn.title AS notice_title
+        FROM competition_project cp
+        JOIN sys_user leader
+          ON leader.user_id = cp.leader_id
+         AND leader.is_deleted = 0
+        JOIN competition_notice cn
+          ON cn.notice_id = cp.notice_id
+         AND cn.is_deleted = 0
+        WHERE cp.is_deleted = 0
+        <if test="keyword != null and keyword != ''">
+          AND (cp.project_name LIKE CONCAT('%', #{keyword}, '%')
+               OR leader.real_name LIKE CONCAT('%', #{keyword}, '%')
+               OR cn.title LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+          AND cp.status = #{status}
+        </if>
+        <if test="noticeId != null">
+          AND cp.notice_id = #{noticeId}
+        </if>
+        ORDER BY cp.created_at DESC
+    </select>
+
+</mapper>

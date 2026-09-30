@@ -1,0 +1,210 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.eliza.aicompetition.mapper.ProjectMaterialMapper">
+
+    <select id="findLatestDetailsByProjectId" resultType="com.eliza.aicompetition.dto.project.ProjectMaterialView">
+        SELECT
+            pm.material_id,
+            mr.requirement_id,
+            mr.requirement_name,
+            mr.is_required AS required_flag,
+            mr.description,
+            pm.submit_status,
+            pm.current_version_id,
+            pm.file_hash,
+            pm.file_id,
+            fa.file_name,
+            pm.version_no,
+            pm.remark,
+            pm.submitted_at,
+            lr.decision  AS review_status,
+            lr.comment   AS review_comment,
+            rev_user.real_name AS reviewed_by_name,
+            lr.created_at AS reviewed_at
+        FROM competition_project cp
+        JOIN material_requirement mr
+          ON mr.notice_id = cp.notice_id
+         AND mr.is_deleted = 0
+         AND mr.status = 'ACTIVE'
+        LEFT JOIN (
+            SELECT pm_inner.*
+            FROM project_material pm_inner
+            JOIN (
+                SELECT project_id, requirement_id, MAX(version_no) AS max_version_no
+                FROM project_material
+                WHERE is_deleted = 0
+                  AND file_id IS NOT NULL
+                  AND current_version_id = material_id
+                GROUP BY project_id, requirement_id
+            ) latest_pm
+              ON latest_pm.project_id = pm_inner.project_id
+             AND latest_pm.requirement_id = pm_inner.requirement_id
+             AND latest_pm.max_version_no = pm_inner.version_no
+            WHERE pm_inner.is_deleted = 0
+        ) pm
+          ON pm.project_id = cp.project_id
+         AND pm.requirement_id = mr.requirement_id
+        LEFT JOIN file_asset fa
+          ON fa.file_id = pm.file_id
+         AND fa.is_deleted = 0
+        LEFT JOIN (
+            SELECT mr2.material_version_id,
+                   mr2.decision,
+                   mr2.comment,
+                   mr2.reviewer_id,
+                   mr2.created_at
+            FROM material_review mr2
+            INNER JOIN (
+                SELECT material_version_id, MAX(id) AS max_id
+                FROM material_review
+                WHERE is_deleted = 0
+                GROUP BY material_version_id
+            ) latest_mr ON latest_mr.material_version_id = mr2.material_version_id
+                       AND latest_mr.max_id = mr2.id
+            WHERE mr2.is_deleted = 0
+        ) lr ON lr.material_version_id = pm.current_version_id
+        LEFT JOIN sys_user rev_user
+          ON rev_user.user_id = lr.reviewer_id
+         AND rev_user.is_deleted = 0
+        WHERE cp.project_id = #{projectId}
+          AND cp.is_deleted = 0
+        ORDER BY mr.sort_no ASC, mr.requirement_id ASC
+    </select>
+
+    <select id="findVersionHistory" resultType="com.eliza.aicompetition.dto.material.MaterialVersionView">
+        SELECT
+            pm.material_id,
+            pm.requirement_id,
+            mr.requirement_name,
+            pm.file_id,
+            fa.file_name,
+            fa.file_ext,
+            fa.file_size,
+            pm.version_no,
+            pm.remark,
+            pm.submitted_at,
+            CASE WHEN pm.current_version_id = pm.material_id THEN TRUE ELSE FALSE END AS current_version,
+            lr.decision AS review_status,
+            lr.comment AS review_comment,
+            reviewer.real_name AS reviewed_by_name,
+            lr.created_at AS reviewed_at
+        FROM project_material pm
+        JOIN competition_project cp
+          ON cp.project_id = pm.project_id
+         AND cp.is_deleted = 0
+        JOIN material_requirement mr
+          ON mr.requirement_id = pm.requirement_id
+         AND mr.notice_id = cp.notice_id
+         AND mr.is_deleted = 0
+        LEFT JOIN file_asset fa
+          ON fa.file_id = pm.file_id
+         AND fa.is_deleted = 0
+        LEFT JOIN (
+            SELECT review.material_version_id,
+                   review.decision,
+                   review.comment,
+                   review.reviewer_id,
+                   review.created_at
+            FROM material_review review
+            INNER JOIN (
+                SELECT material_version_id, MAX(id) AS max_id
+                FROM material_review
+                WHERE is_deleted = 0
+                GROUP BY material_version_id
+            ) latest ON latest.material_version_id = review.material_version_id
+                    AND latest.max_id = review.id
+            WHERE review.is_deleted = 0
+        ) lr ON lr.material_version_id = pm.material_id
+        LEFT JOIN sys_user reviewer
+          ON reviewer.user_id = lr.reviewer_id
+         AND reviewer.is_deleted = 0
+        WHERE pm.project_id = #{projectId}
+          AND pm.requirement_id = #{requirementId}
+          AND pm.file_id IS NOT NULL
+          AND pm.is_deleted = 0
+        ORDER BY pm.version_no DESC, pm.material_id DESC
+    </select>
+
+    <!-- P1-4: 分页查询材料列表（最新版本），支持按项目和提交状态筛选 -->
+    <select id="findMaterialsPage" resultType="com.eliza.aicompetition.dto.project.ProjectMaterialView">
+        SELECT
+            pm.material_id,
+            mr.requirement_id,
+            mr.requirement_name,
+            mr.is_required AS required_flag,
+            mr.description,
+            pm.submit_status,
+            pm.current_version_id,
+            pm.file_hash,
+            pm.file_id,
+            fa.file_name,
+            pm.version_no,
+            pm.remark,
+            pm.submitted_at,
+            lr.decision  AS review_status,
+            lr.comment   AS review_comment,
+            rev_user.real_name AS reviewed_by_name,
+            lr.created_at AS reviewed_at
+        FROM competition_project cp
+        JOIN material_requirement mr
+          ON mr.notice_id = cp.notice_id
+         AND mr.is_deleted = 0
+         AND mr.status = 'ACTIVE'
+        LEFT JOIN (
+            SELECT pm_inner.*
+            FROM project_material pm_inner
+            JOIN (
+                SELECT project_id, requirement_id, MAX(version_no) AS max_version_no
+                FROM project_material
+                WHERE is_deleted = 0
+                  AND file_id IS NOT NULL
+                  AND current_version_id = material_id
+                GROUP BY project_id, requirement_id
+            ) latest_pm
+              ON latest_pm.project_id = pm_inner.project_id
+             AND latest_pm.requirement_id = pm_inner.requirement_id
+             AND latest_pm.max_version_no = pm_inner.version_no
+            WHERE pm_inner.is_deleted = 0
+        ) pm
+          ON pm.project_id = cp.project_id
+         AND pm.requirement_id = mr.requirement_id
+        LEFT JOIN file_asset fa
+          ON fa.file_id = pm.file_id
+         AND fa.is_deleted = 0
+        LEFT JOIN (
+            SELECT mr2.material_version_id,
+                   mr2.decision,
+                   mr2.comment,
+                   mr2.reviewer_id,
+                   mr2.created_at
+            FROM material_review mr2
+            INNER JOIN (
+                SELECT material_version_id, MAX(id) AS max_id
+                FROM material_review
+                WHERE is_deleted = 0
+                GROUP BY material_version_id
+            ) latest_mr ON latest_mr.material_version_id = mr2.material_version_id
+                       AND latest_mr.max_id = mr2.id
+            WHERE mr2.is_deleted = 0
+        ) lr ON lr.material_version_id = pm.current_version_id
+        LEFT JOIN sys_user rev_user
+          ON rev_user.user_id = lr.reviewer_id
+         AND rev_user.is_deleted = 0
+        WHERE cp.is_deleted = 0
+        <if test="projectId != null">
+          AND cp.project_id = #{projectId}
+        </if>
+        <if test="submitted != null">
+          <if test="submitted == true">
+          AND pm.current_version_id IS NOT NULL
+          </if>
+          <if test="submitted == false">
+          AND pm.current_version_id IS NULL
+          </if>
+        </if>
+        ORDER BY cp.project_id, mr.sort_no ASC, mr.requirement_id ASC
+    </select>
+
+</mapper>

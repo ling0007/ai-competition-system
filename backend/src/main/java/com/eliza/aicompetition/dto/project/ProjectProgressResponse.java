@@ -1,0 +1,26 @@
+package com.eliza.aicompetition.dto.project;
+
+import lombok.Builder;
+import lombok.Data;
+
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Data
+@Builder
+public class ProjectProgressResponse {
+    private Long projectId;
+    private String projectName;
+    private String status;
+    private LocalDateTime deadline;
+    private Integer requiredTotal;
+    private Integer submittedTotal;
+    private Integer missingTotal;
+    private BigDecimal completionRate;
+    private List<String> missingMaterials;
+    /** 材料是否齐全（派生属性，实时计算，不落库） */
+    private Boolean materialComplete;
+    /** 材料完整度中文标签 */
+    private String completenessLabel;
+}

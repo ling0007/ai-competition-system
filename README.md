@@ -60,4 +60,4 @@ V1 migration 含演示用户数据；此配置面向本地复现，公开部署�
 | [`AGENTS.md`](AGENTS.md) 与 [`docs/knowledge/`](docs/knowledge/index.md) | AI 协作规范、工程知识索引与证据边界 |
 | [`docs/testdata/eval/`](docs/testdata/eval/) | gold 规则、样本与复现命令 |
 
-当前边界：单实例任务恢复已验证；多实例吞吐、独立 holdout 泛化评估和完整 Compose 应用镜像尚未验证。超出 PDF/OCR/分段边界的文件需要人工提供可提取文本。[后续工作](docs/portfolio/future-work.md)单独记录。
+当前边界：单实例任务恢复已验证；多实例吞吐、独立 holdout 泛化评估和完整 Compose 应用镜像尚未验证。超出 PDF/OCR/分段边界的文件需要人工提供可提取文本。

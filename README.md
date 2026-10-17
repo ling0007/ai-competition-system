@@ -6,7 +6,7 @@
 
 ## 演示视频
 
-[观看 / 下载系统演示视频](docs/portfolio/ai材料系统.mp4)
+[在 B 站观看系统演示视频](https://www.bilibili.com/video/BV1CtJi6bE6z/)
 
 ## 业务流程
 

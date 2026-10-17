@@ -4,6 +4,10 @@
 
 管理员上传竞赛通知并核对 AI 解析草稿后发布；学生按材料清单组队申报、上传多版本文件；教师查看授权项目并复核材料。AI 提供辅助意见，不自动发布通知或替代人工审核。
 
+## 演示视频
+
+[观看 / 下载系统演示视频](docs/portfolio/ai材料系统.mp4)
+
 ## 业务流程
 
 AI 只生成解析草稿和初审意见；通知发布、材料退回与审核通过均由人工决定。
@@ -50,13 +54,3 @@ PowerShell 使用 `Copy-Item .env.example .env` 复制配置。`docker compose c
 浏览器访问 `http://localhost:8080`，健康检查地址为 `http://localhost:8080/health`。Compose 会启动 MySQL、Redis 和前后端一体化应用，Flyway 在首次启动时自动初始化数据库。`DASHSCOPE_API_KEY` 可留空，此时普通业务仍可运行，AI 任务会返回明确的降级结果；如需体验真实 AI 调用，再填写有效 Key。
 
 使用 `docker compose down` 停止服务并保留数据。`docker compose down -v` 会同时删除本地 MySQL 数据卷，仅在需要重新初始化演示环境时使用。
-
-## 代码与证据入口
-
-| 路径 | 内容 |
-| --- | --- |
-| [`backend/src/main/java/com/eliza/aicompetition/`](backend/src/main/java/com/eliza/aicompetition/) | Controller、Service、认证、任务调度、文件提取 |
-| [`backend/src/main/resources/db/migration/`](backend/src/main/resources/db/migration/) | Flyway schema 与演进 |
-| [`frontend/src/`](frontend/src/) | Vue 页面、角色路由、任务轮询 |
-| [`AGENTS.md`](AGENTS.md) 与 [`docs/knowledge/`](docs/knowledge/index.md) | AI 协作规范、工程知识索引与证据边界 |
-| [`docs/testdata/eval/`](docs/testdata/eval/) | gold 规则、样本与复现命令 |
